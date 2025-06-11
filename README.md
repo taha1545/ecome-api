@@ -162,7 +162,7 @@ POST /products/{productId}/save
 - `GET /payments/{id}/status` - Get payment status
 - `PATCH /payments/{id}/status` - Update payment status
 - `POST /payments/{id}/refund` - Process refund
-- `POST /payments/webhook` - Handle payment webhooks
+- `POST /payments/webhook` - still want to implement it just wait
 
 ### Stock Management
 #### Protected Endpoints
@@ -175,7 +175,6 @@ POST /products/{productId}/save
 - `GET /admin/summary` - Get dashboard summary
 - `GET /admin/sales-analytics` - Get sales analytics
 - `GET /admin/order-analytics` - Get order analytics
-- `GET /admin/order-notifications` - Get real-time order notifications
 
 ### Address Management
 #### Protected Endpoints
@@ -184,10 +183,6 @@ POST /products/{productId}/save
 - `POST /addresses` - Create new address
 - `PUT /addresses/{id}` - Update address
 - `DELETE /addresses/{id}` - Delete address
-- `GET /addresses/default` - Get default address
-- `POST /addresses/{id}/set-default` - Set as default address
-- `GET /addresses/shipping` - Get shipping addresses
-- `GET /addresses/billing` - Get billing addresses
 
 ### Contact Management
 #### Public Endpoints
@@ -324,7 +319,6 @@ The API implements caching for:
 - Category and tag lists
 - Best-selling products
 - Dashboard analytics
-- Stock information
 
 ## 📤 File Upload
 Supported file types:
@@ -332,31 +326,16 @@ Supported file types:
 - Documents (pdf, doc, docx)
 - Maximum file size: 10MB
 
-## 🧪 Testing
-The API includes comprehensive test coverage:
-- Unit tests
-- Integration tests
-- API tests
-- Performance tests
 
-## 📞 Support
-For API support and assistance:
-- Email: support@your-domain.com
-- Documentation: https://your-domain.com/docs
-- Status: https://status.your-domain.com
+
 
 ## 🔄 Real-time Features
 The API provides real-time updates for:
 - Order status changes
 - Payment status updates
-- Stock level changes
 - New order notifications
 
-## 📈 Webhooks
-The system supports webhooks for:
-- Payment status updates
-- Order status changes
-- Stock level changes
+
 
 ## 🚀 Getting Started
 1. Register for an API key
@@ -364,8 +343,3 @@ The system supports webhooks for:
 3. Review the documentation
 4. Start integrating the API
 
-## 📚 Additional Resources
-- API Documentation: https://your-domain.com/docs
-- SDK Downloads: https://your-domain.com/sdk
-- Example Applications: https://your-domain.com/examples
-- API Status: https://status.your-domain.com
