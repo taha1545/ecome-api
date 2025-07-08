@@ -15,11 +15,8 @@ use App\Events\NewOrderPlaced;
 
 class OrderController extends Controller
 {
-    // show my order
-    // real time data
-    // more validatrion for ortder items
-    //order costs and details
-    // test
+
+    // 
 
     public function index(Request $request)
     {
@@ -52,33 +49,21 @@ class OrderController extends Controller
     }
 
 
-    public function show(Request $request, $id)
+    public function show(Request $request, Order $order)
     {
         try {
-            //
-            $user = $request->user();
-            //
-            $order = Order::with([
+            $order->load([
                 'user.addresse',
                 'items.product.files',
                 'items.variant',
                 'coupon',
                 'payments'
-            ])->findOrFail($id);
-            //
-            if ($user->role !== 'admin' && $order->user_id !== $user->id) {
-                return response()->json([
-                    'status' => false,
-                    'message' => 'Unauthorized to view this order'
-                ], 403);
-            }
-            //
+            ]);
             return response()->json([
                 'status' => true,
                 'message' => 'Order retrieved successfully',
                 'data' => new OrderResource($order)
             ]);
-            //
         } catch (\Exception $e) {
             return response()->json([
                 'status' => false,
@@ -93,12 +78,7 @@ class OrderController extends Controller
     {
         try {
             $user = $request->user();
-            if (!$user || $user->role !== 'admin') {
-                return response()->json([
-                    'status' => false,
-                    'message' => 'Unauthorized. Only admins can create orders.'
-                ], 403);
-            }
+            $request['user_id'] = $user->id;
             //
             $validator = Validator::make($request->all(), [
                 'user_id' => 'required|exists:users,id',
@@ -107,9 +87,6 @@ class OrderController extends Controller
                 'items.*.product_variant_id' => 'nullable|exists:product_variants,id',
                 'items.*.quantity' => 'required|integer|min:1',
                 'coupon_code' => 'nullable|string|exists:coupons,code',
-                'shipping_address_id' => 'nullable|exists:addresses,id',
-                'notes' => 'nullable|string|max:500',
-                'status' => 'nullable|string|in:pending,processing,confirmed,shipped,delivered',
             ]);
             //
             if ($validator->fails()) {
@@ -147,22 +124,12 @@ class OrderController extends Controller
         }
     }
 
-
-    public function update(Request $request, $id)
+    public function update(Request $request, Order $order)
     {
         DB::beginTransaction();
         try {
             //
             $user = $request->user();
-            //
-            if (!$user || $user->role !== 'admin') {
-                return response()->json([
-                    'status' => false,
-                    'message' => 'Unauthorized. Only admins can update orders.'
-                ], 403);
-            }
-            //
-            $order = Order::findOrFail($id);
             //
             $validator = Validator::make($request->all(), [
                 'status' => 'nullable|string|in:' . implode(',', Order::STATUSES),
@@ -256,24 +223,13 @@ class OrderController extends Controller
         }
     }
 
-    public function updateStatus(Request $request, $id)
+    public function updateStatus(Request $request, Order $order)
     {
         DB::beginTransaction();
         try {
-            $user = $request->user();
-            $order = Order::findOrFail($id);
-            // 
-            if ($user->role !== 'admin') {
-                return response()->json([
-                    'status' => false,
-                    'message' => 'Unauthorized to update order status'
-                ], 403);
-            }
-            // 
             $validator = Validator::make($request->all(), [
                 'status' => 'required|string|in:' . implode(',', Order::STATUSES),
             ]);
-            //
             if ($validator->fails()) {
                 return response()->json([
                     'status' => false,
@@ -281,24 +237,17 @@ class OrderController extends Controller
                     'errors' => $validator->errors()
                 ], 422);
             }
-            // 
             $oldStatus = $order->status;
             $newStatus = $request->status;
-            //
             $order->status = $newStatus;
-            // 
             if ($newStatus === 'canceled' && $oldStatus !== 'canceled') {
                 $order->cancelled_at = now();
             } elseif ($newStatus !== 'canceled') {
                 $order->cancelled_at = null;
             }
-            //
             $order->save();
-            //
             event(new OrderStatusUpdated($order));
-            //
             DB::commit();
-            //
             $order->load([
                 'user.addresse',
                 'items.product.files',
@@ -306,7 +255,6 @@ class OrderController extends Controller
                 'coupon',
                 'payments'
             ]);
-            //
             return response()->json([
                 'status' => true,
                 'message' => 'Order status updated successfully',
@@ -322,20 +270,17 @@ class OrderController extends Controller
         }
     }
 
-    public function cancel(Request $request, $id)
+    public function cancel(Request $request, Order $order)
     {
         DB::beginTransaction();
         try {
             $user = $request->user();
-            $order = Order::findOrFail($id);
-            // 
             if ($order->user_id !== $user->id) {
                 return response()->json([
                     'status' => false,
                     'message' => 'Unauthorized to cancel this order'
                 ], 403);
             }
-            // 
             $allowedStatuses = ['pending', 'processing'];
             if (!in_array($order->status, $allowedStatuses)) {
                 return response()->json([
@@ -343,13 +288,10 @@ class OrderController extends Controller
                     'message' => 'Order cannot be canceled in its current status'
                 ], 400);
             }
-            // 
             $order->status = 'canceled';
             $order->cancelled_at = now();
             $order->save();
-            //
             DB::commit();
-            //
             $order->load([
                 'user.addresse',
                 'items.product.files',
@@ -357,13 +299,11 @@ class OrderController extends Controller
                 'coupon',
                 'payments'
             ]);
-            //
             return response()->json([
                 'status' => true,
                 'message' => 'Order canceled successfully',
                 'data' => new OrderResource($order)
             ]);
-            //
         } catch (\Exception $e) {
             DB::rollBack();
             return response()->json([
@@ -373,5 +313,4 @@ class OrderController extends Controller
             ], 500);
         }
     }
-    
 }

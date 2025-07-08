@@ -15,7 +15,7 @@ class CuponPolicy
         return true;
     }
 
-    public function view(User $user, Cupon $cupon)
+    public function view(User $user)
     {
         return true;
     }
@@ -25,30 +25,18 @@ class CuponPolicy
         return $user->role === 'admin';
     }
 
-    public function update(User $user, Cupon $cupon)
+    public function update(User $user)
     {
         return $user->role === 'admin';
     }
 
-    public function delete(User $user, Cupon $cupon)
+    public function delete(User $user)
     {
         return $user->role === 'admin';
     }
 
-    public function apply(User $user, Cupon $cupon)
+    public function apply(User $user)
     {
-        if (!$cupon->is_active) {
-            return false;
-        }
-
-        if ($cupon->expires_at && $cupon->expires_at->isPast()) {
-            return false;
-        }
-
-        if ($cupon->max_usage > 0 && $cupon->used_count >= $cupon->max_usage) {
-            return false;
-        }
-
         return true;
     }
 }

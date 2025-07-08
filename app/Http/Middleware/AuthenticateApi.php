@@ -8,9 +8,15 @@ use Illuminate\Auth\AuthenticationException;
 
 class AuthenticateApi extends Middleware
 {
+    // 
     public function handle($request, Closure $next, ...$guards)
     {
         try {
+            $guards = ['sanctum'];
+            //
+            config(['sanctum.middleware.encrypt_cookies' => false]);
+            config(['sanctum.middleware.validate_csrf_token' => false]);
+
             return parent::handle($request, $next, ...$guards);
         } catch (AuthenticationException $e) {
             return response()->json([
@@ -21,15 +27,14 @@ class AuthenticateApi extends Middleware
         }
     }
 
-    // Add this to prevent redirects
+
+
     protected function redirectTo($request)
     {
-        if (!$request->expectsJson()) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Unauthenticated',
-                'errors' => 'Invalid or expired authentication token'
-            ], 401);
-        }
+        return response()->json([
+            'success' => false,
+            'message' => 'Unauthenticated',
+            'errors' => 'Invalid or expired authentication token'
+        ], 401);
     }
 }

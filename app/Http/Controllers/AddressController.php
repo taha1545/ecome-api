@@ -4,26 +4,16 @@ namespace App\Http\Controllers;
 
 use App\Models\Addresse;
 use App\Http\Resources\AddressResource;
+use Exception;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 
 class AddressController extends Controller
 {
 
-    public function show(Request $request, $id)
+    public function show(Request $request, Addresse $address)
     {
         try {
-            $user = $request->user();
-            $address = Addresse::findOrFail($id);
-
-            // 
-            if ($user->role !== 'admin' && $address->user_id !== $user->id) {
-                return response()->json([
-                    'status' => false,
-                    'message' => 'Unauthorized to view this address'
-                ], 403);
-            }
-
             return response()->json([
                 'status' => true,
                 'message' => 'Address retrieved successfully',
@@ -38,12 +28,12 @@ class AddressController extends Controller
         }
     }
 
-
     public function store(Request $request)
     {
         try {
+            $rdd = null;
             $user = $request->user();
-
+            //
             $validator = Validator::make($request->all(), [
                 'address_line1' => 'required|string|max:255',
                 'address_line2' => 'nullable|string|max:255',
@@ -53,7 +43,7 @@ class AddressController extends Controller
                 'latitude' => 'nullable|numeric',
                 'longitude' => 'nullable|numeric',
             ]);
-
+            //
             if ($validator->fails()) {
                 return response()->json([
                     'status' => false,
@@ -61,51 +51,46 @@ class AddressController extends Controller
                     'errors' => $validator->errors()
                 ], 422);
             }
-
+            //
             $data = $validator->validated();
             $data['user_id'] = $user->id;
-
+            //
+            $addresses = Addresse::where('user_id', $user->id)->get();
+            if ($addresses == []) {
+                throw new Exception("user alreadsy has address");
+                $rdd = 1;
+            }
+            //
             $address = Addresse::create($data);
-
+            //
             return response()->json([
                 'status' => true,
                 'message' => 'Address created successfully',
                 'data' => new AddressResource($address)
             ], 201);
+            //
         } catch (\Exception $e) {
             return response()->json([
                 'status' => false,
                 'message' => 'Failed to create address',
                 'error' => $e->getMessage()
-            ], 500);
+            ], isset($rrd) ? 500 : 400);
         }
     }
 
 
-    public function update(Request $request, $id)
+    public function update(Request $request, Addresse $address)
     {
         try {
-            $user = $request->user();
-            $address = Addresse::findOrFail($id);
-
-            //
-            if ($user->role !== 'admin' && $address->user_id !== $user->id) {
-                return response()->json([
-                    'status' => false,
-                    'message' => 'Unauthorized to update this address'
-                ], 403);
-            }
-
             $validator = Validator::make($request->all(), [
-                'address_line1' => 'nullable|string|max:255',
-                'address_line2' => 'nullable|string|max:255',
-                'city' => 'nullable|string|max:100',
-                'postal_code' => 'nullable|string|max:20',
-                'phone' => 'nullable|string|max:20',
-                'latitude' => 'nullable|numeric',
-                'longitude' => 'nullable|numeric',
+                'address_line1' => 'sometimes|string|max:255',
+                'address_line2' => 'sometimes|string|max:255',
+                'city'          => 'sometimes|string|max:100',
+                'postal_code'   => 'sometimes|string|max:20',
+                'phone'         => 'sometimes|string|max:20',
+                'latitude'      => 'sometimes|numeric',
+                'longitude'     => 'sometimes|numeric',
             ]);
-
             if ($validator->fails()) {
                 return response()->json([
                     'status' => false,
@@ -113,10 +98,8 @@ class AddressController extends Controller
                     'errors' => $validator->errors()
                 ], 422);
             }
-
             $data = $validator->validated();
             $address->update($data);
-
             return response()->json([
                 'status' => true,
                 'message' => 'Address updated successfully',
@@ -131,23 +114,11 @@ class AddressController extends Controller
         }
     }
 
-
-    public function destroy(Request $request, $id)
+    public function destroy(Request $request)
     {
         try {
             $user = $request->user();
-            $address = Addresse::findOrFail($id);
-
-            // 
-            if ($user->role !== 'admin' && $address->user_id !== $user->id) {
-                return response()->json([
-                    'status' => false,
-                    'message' => 'Unauthorized to delete this address'
-                ], 403);
-            }
-
-            $address->delete();
-
+            Addresse::where('user_id', $user->id)->delete();
             return response()->json([
                 'status' => true,
                 'message' => 'Address deleted successfully'
@@ -161,18 +132,19 @@ class AddressController extends Controller
         }
     }
 
-
     public function getUserAddresses(Request $request)
     {
         try {
+            //
             $user = $request->user();
             $addresses = Addresse::where('user_id', $user->id)->get();
-
+            //
             return response()->json([
                 'status' => true,
                 'message' => 'User addresses retrieved successfully',
                 'data' => AddressResource::collection($addresses)
             ]);
+            //
         } catch (\Exception $e) {
             return response()->json([
                 'status' => false,

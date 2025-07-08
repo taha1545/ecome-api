@@ -12,10 +12,12 @@ class ProductVariant extends Model
 
     public $timestamps = false;
 
+
     protected $fillable = [
         'size',
         'color',
         'quantity',
+        'description',
         'price',
         'product_id'
     ];

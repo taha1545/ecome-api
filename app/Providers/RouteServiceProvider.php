@@ -14,10 +14,25 @@ class RouteServiceProvider extends ServiceProvider
         //
     }
 
-
     public function boot(): void
     {
         parent::boot();
+
+        // Add explicit model bindings
+        Route::model('payment', \App\Models\Payment::class);
+        Route::model('order', \App\Models\Order::class);
+        Route::model('coupon', \App\Models\Cupon::class);
+        Route::model('address', \App\Models\Addresse::class);
+        Route::model('contact', \App\Models\Contact::class);
+        Route::model('product', \App\Models\Product::class);
+        Route::model('comment', \App\Models\Comment::class);
+        Route::model('review', \App\Models\Review::class);
+        Route::model('variant', \App\Models\ProductVariant::class);
+        Route::model('file', \App\Models\ProductFile::class);
+        Route::model('orderitem', \App\Models\OrderItem::class);
+        Route::model('savedproduct', \App\Models\SavedProduct::class);
+        Route::model('category', \App\Models\Categorie::class);
+        Route::model('tag', \App\Models\Tag::class);
 
         $this->mapApiRoutes();
         $this->mapWebRoutes();
@@ -34,10 +49,14 @@ class RouteServiceProvider extends ServiceProvider
     protected function mapApiRoutes(): void
     {
         Route::prefix('api')
-            ->middleware(['api', 'json'])
+            ->middleware([
+                'json',
+                \App\Http\Middleware\ForceJsonResponse::class
+            ])
             ->namespace($this->namespace)
             ->group(base_path('routes/api.php'));
     }
+    
     protected function mapAuthRoutes(): void
     {
         Route::prefix('Auth')

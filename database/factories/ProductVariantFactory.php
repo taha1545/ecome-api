@@ -17,6 +17,7 @@ class ProductVariantFactory extends Factory
             'size' => $this->faker->optional(70)->randomElement(['XS', 'S', 'M', 'L', 'XL', 'XXL']),
             'color' => $this->faker->optional(60)->safeColorName(),
             'quantity' => $this->faker->numberBetween(0, 100),
+            'description'=>$this->faker->optional(60)->safeColorName(),
             'price' => $this->faker->randomFloat(2, 10, 1000),
         ];
     }

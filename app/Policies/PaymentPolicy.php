@@ -29,22 +29,22 @@ class PaymentPolicy
         return true;
     }
 
-    public function update(User $user, Payment $payment)
+    public function update(User $user)
     {
         return $user->role === 'admin';
     }
 
-    public function delete(User $user, Payment $payment)
+    public function delete(User $user)
     {
         return $user->role === 'admin';
     }
 
-    public function refund(User $user, Payment $payment)
+    public function refund(User $user)
     {
         return $user->role === 'admin';
     }
 
-    public function updateStatus(User $user, Payment $payment)
+    public function updateStatus(User $user)
     {
         return $user->role === 'admin';
     }

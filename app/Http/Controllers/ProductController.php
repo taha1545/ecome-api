@@ -3,10 +3,8 @@
 namespace App\Http\Controllers;
 
 use App\Filters\ProductFilter;
-use Illuminate\Database\Eloquent\ModelNotFoundException;
 use App\Http\Requests\StoreProductRequest;
 use App\Http\Requests\UpdateProductRequest;
-use App\Http\Requests\SearchRequest;
 use App\Http\Resources\ProductCollection;
 use App\Http\Resources\ProductResource;
 use App\Models\Product;
@@ -18,26 +16,21 @@ use Illuminate\Support\Facades\DB;
 
 class ProductController extends Controller
 {
-    // sorting + advance filter
-    //cache
-    //analytics endpoint
-    // suggest prodect
-    // queue system
-    //more auth
-    // pack add (offer)
-    
+
     private $cacheDuration = 3600;
 
     public function index(Request $request)
     {
         try {
             $cacheKey = 'products_' . md5(json_encode($request->all()));
-            
+            //
             return Cache::remember($cacheKey, $this->cacheDuration, function () use ($request) {
+                //
                 $query = Product::query();
                 $filter = new ProductFilter($request);
                 $query = $filter->apply($query);
-                
+                //
+                $PerPage = $request['PerPage'] ?? 20;
                 $products = $query
                     ->with([
                         'categories:id,name,image',
@@ -46,14 +39,15 @@ class ProductController extends Controller
                     ])
                     ->withAvg('reviews', 'rating')
                     ->withCount('reviews')
-                    ->paginate(20);
-                
+                    ->paginate($PerPage);
+                //
                 return response()->json([
                     'status' => true,
                     'message' => 'Products retrieved successfully',
                     'data' => new ProductCollection($products)
                 ]);
             });
+            //
         } catch (\Exception $e) {
             return response()->json([
                 'status' => false,
@@ -63,39 +57,14 @@ class ProductController extends Controller
         }
     }
 
-    public function show($id, Request $request)
+    public function show(Product $product, Request $request)
     {
         try {
-            $product = Product::with([
-                'categories:id,name,image',
-                'tags:id,name,icon',
-                'variants:id,product_id,size,color,quantity,price',
-                'files',
-            ])
-                ->withAvg('reviews', 'rating')
-                ->withCount('reviews')
-                ->findOrFail($id);
-            
-            $product->increment('views');
-            
-            $isSaved = false;
-            if ($request->user()) {
-                $isSaved = $request->user()->savedProducts()->where('product_id', $product->id)->exists();
-            }
-            
-            $responseData = $product;
-            $responseData['is_saved'] = $isSaved;
-            
             return response()->json([
                 'status' => true,
                 'message' => 'Product retrieved successfully',
-                'data' => $responseData
+                'data' => new ProductResource($product)
             ]);
-        } catch (ModelNotFoundException $e) {
-            return response()->json([
-                'status' => false,
-                'message' => 'Product not found'
-            ], 404);
         } catch (\Exception $e) {
             return response()->json([
                 'status' => false,
@@ -108,14 +77,16 @@ class ProductController extends Controller
     public function store(StoreProductRequest $request, ProductService $productService)
     {
         try {
+            //
             $validatedData = $request->validated();
             $product = $productService->createProduct($validatedData);
-
+            //
             return response()->json([
                 'status' => true,
                 'message' => 'Product created successfully',
                 'data' => new ProductResource($product)
             ], 201);
+            //
         } catch (\Exception $e) {
             return response()->json([
                 'status' => false,
@@ -125,24 +96,15 @@ class ProductController extends Controller
         }
     }
 
-    public function update(UpdateProductRequest $request, $id)
+    public function update(UpdateProductRequest $request, Product $product, ProductService $productService)
     {
         try {
-            $product = Product::find($id);
-            if (!$product) {
-                return response()->json([
-                    'status' => false,
-                    'message' => 'Product not found'
-                ], 404);
-            }
-
             $validatedData = $request->validated();
-            $product->update($validatedData);
-
+            $updatedProduct = $productService->updateProduct($product, $validatedData);
             return response()->json([
                 'status' => true,
                 'message' => 'Product updated successfully',
-                'data' => new ProductResource($product->fresh())
+                'data' => new ProductResource($updatedProduct)
             ]);
         } catch (\Exception $e) {
             return response()->json([
@@ -153,17 +115,9 @@ class ProductController extends Controller
         }
     }
 
-    public function destroy($id)
+    public function destroy(Product $product)
     {
         try {
-            $product = Product::where('id', $id)->first();
-            if (!$product) {
-                return response()->json([
-                    'status' => false,
-                    'message' => 'Product not found'
-                ], 404);
-            }
-
             app(ProductService::class)->deleteProduct($product);
             return response()->json([
                 'status' => true,
@@ -178,22 +132,24 @@ class ProductController extends Controller
         }
     }
 
-    public function search(SearchRequest $request)
+    public function search(Request $request)
     {
         try {
-            $validatedData = $request->validated();
+            $validatedData = $request->validate([
+                'query' => 'required|string|min:1',
+            ]);
             $query = $validatedData['query'];
-            
+            //
             $products = Product::search($query)
-                ->query(fn ($query) => $query->with([
+                ->query(fn($query) => $query->with([
                     'categories:id,name,image',
                     'tags:id,name,icon',
                     'files' => fn($q) => $q->where('type', 'image')->orderBy('id')->limit(1),
                 ])
-                ->withAvg('reviews', 'rating')
-                ->withCount('reviews'))
+                    ->withAvg('reviews', 'rating')
+                    ->withCount('reviews'))
                 ->paginate(20);
-            
+            //
             return response()->json([
                 'status' => true,
                 'message' => 'Search results',
@@ -212,11 +168,12 @@ class ProductController extends Controller
     {
         try {
             $cacheKey = 'best_selling_products_' . md5(json_encode($request->all()));
-            
+            //
             return Cache::remember($cacheKey, $this->cacheDuration, function () use ($request) {
+                //
                 $limit = $request->get('limit', 10);
-                $period = $request->get('period', 'month'); // day, week, month, year
-                
+                $period = $request->get('period', 'month');
+                //
                 $query = Product::query()
                     ->select([
                         'products.*',
@@ -226,7 +183,7 @@ class ProductController extends Controller
                     ])
                     ->join('order_items', 'products.id', '=', 'order_items.product_id')
                     ->join('orders', 'order_items.order_id', '=', 'orders.id')
-                    ->where('orders.status', 'completed')
+                    ->where('orders.status', 'confirmed')
                     ->when($period === 'day', function ($query) {
                         return $query->whereDate('orders.created_at', today());
                     })
@@ -235,10 +192,13 @@ class ProductController extends Controller
                     })
                     ->when($period === 'month', function ($query) {
                         return $query->whereMonth('orders.created_at', now()->month)
-                                   ->whereYear('orders.created_at', now()->year);
+                            ->whereYear('orders.created_at', now()->year);
                     })
                     ->when($period === 'year', function ($query) {
                         return $query->whereYear('orders.created_at', now()->year);
+                    })
+                    ->when($period === 'all', function ($query) {
+                        return $query;
                     })
                     ->groupBy('products.id')
                     ->orderBy('total_quantity', 'desc')
@@ -249,9 +209,9 @@ class ProductController extends Controller
                     ])
                     ->withAvg('reviews', 'rating')
                     ->withCount('reviews');
-
+                //
                 $products = $query->paginate($limit);
-
+                //
                 return response()->json([
                     'status' => true,
                     'message' => 'Best selling products retrieved successfully',
@@ -274,30 +234,23 @@ class ProductController extends Controller
         }
     }
 
-    /**
-     * Get suggested products based on a product ID
-     */
-    public function suggestProducts(Request $request, $id)
+    public function suggestProducts(Request $request, Product $product)
     {
         try {
+            //
             $limit = $request->get('limit', 5);
-            
-            // Get the base product
-            $product = Product::with(['categories:id', 'tags:id'])
-                ->findOrFail($id);
-
-            // Get related products based on categories and tags
+            // 
             $relatedProducts = Product::query()
-                ->where('id', '!=', $id) // Exclude the current product
+                ->where('id', '!=', $product->id)
                 ->where(function ($query) use ($product) {
-                    // Match by categories
+                    // 
                     $query->whereHas('categories', function ($q) use ($product) {
                         $q->whereIn('categories.id', $product->categories->pluck('id'));
                     })
-                    // Match by tags
-                    ->orWhereHas('tags', function ($q) use ($product) {
-                        $q->whereIn('tags.id', $product->tags->pluck('id'));
-                    });
+                        //
+                        ->orWhereHas('tags', function ($q) use ($product) {
+                            $q->whereIn('tags.id', $product->tags->pluck('id'));
+                        });
                 })
                 ->with([
                     'categories:id,name,image',
@@ -306,15 +259,15 @@ class ProductController extends Controller
                 ])
                 ->withAvg('reviews', 'rating')
                 ->withCount('reviews')
-                ->inRandomOrder() // Randomize results
+                ->inRandomOrder() // 
                 ->take($limit)
                 ->get();
 
-            // If we don't have enough related products, get more based on price range
+            // 
             if ($relatedProducts->count() < $limit) {
-                $priceRange = $product->price * 0.2; // 20% price range
+                $priceRange = $product->price * 0.2; // 
                 $additionalProducts = Product::query()
-                    ->where('id', '!=', $id)
+                    ->where('id', '!=', $product->id)
                     ->whereNotIn('id', $relatedProducts->pluck('id'))
                     ->whereBetween('price', [
                         $product->price - $priceRange,
@@ -337,15 +290,8 @@ class ProductController extends Controller
             return response()->json([
                 'status' => true,
                 'message' => 'Suggested products retrieved successfully',
-                'data' => [
-                    'base_product' => [
-                        'id' => $product->id,
-                        'name' => $product->name,
-                        'price' => $product->price,
-                        'categories' => $product->categories->pluck('name'),
-                        'tags' => $product->tags->pluck('name')
-                    ],
-                    'suggested_products' => $relatedProducts->map(function ($product) {
+                'data' =>  [
+                    $relatedProducts->map(function ($product) {
                         return [
                             'id' => $product->id,
                             'name' => $product->name,

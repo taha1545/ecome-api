@@ -16,8 +16,6 @@ class PaymentCollectionResource extends JsonResource
                 'name' => $this->user->name,
             ],
             'amount' => (float) $this->amount,
-            'currency' => $this->currency,
-            'method' => $this->method,
             'status' => $this->status,
             'transaction_id' => $this->transaction_id,
             'processed_at' => $this->processed_at ? $this->processed_at->format('Y-m-d H:i:s') : null,

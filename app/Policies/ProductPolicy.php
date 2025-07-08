@@ -33,13 +33,13 @@ class ProductPolicy
     }
 
 
-    public function update(User $user, Product $product)
+    public function update(User $user)
     {
         return $user->role === 'admin';
     }
 
   
-    public function delete(User $user, Product $product)
+    public function delete(User $user)
     {
         return $user->role === 'admin';
     }

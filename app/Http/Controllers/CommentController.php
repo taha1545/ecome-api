@@ -9,16 +9,13 @@ use Illuminate\Support\Facades\Validator;
 
 class CommentController extends Controller
 {
-    public function getComments($productId)
+    public function getComments(Product $product)
     {
         try {
-            $product = Product::findOrFail($productId);
-
             $comments = $product->comments()
                 ->with('user:id,name,profile_image')
-                ->orderBy('id', 'desc')
+                ->orderBy('created_at', 'desc')
                 ->paginate(20);
-
             return response()->json([
                 'status' => true,
                 'message' => 'Comments retrieved successfully',
@@ -33,13 +30,12 @@ class CommentController extends Controller
         }
     }
 
-    public function addComment($productId, Request $request)
+    public function addComment(Product $product, Request $request)
     {
         try {
             $validator = Validator::make($request->all(), [
-                'message' => 'required|string|min:2|max:1000',
+                'message' => 'required|string|min:1|max:1000',
             ]);
-            
             if ($validator->fails()) {
                 return response()->json([
                     'status' => false,
@@ -47,21 +43,16 @@ class CommentController extends Controller
                     'errors' => $validator->errors()
                 ], 422);
             }
-            
-            $product = Product::findOrFail($productId);
             $user = $request->user();
-            
             $comment = $product->comments()->create([
                 'message' => $request->message,
                 'user_id' => $user->id
             ]);
-            
             return response()->json([
                 'status' => true,
                 'message' => 'Comment added successfully',
                 'data' => $comment->load('user:id,name,profile_image')
             ], 201);
-            
         } catch (\Exception $e) {
             return response()->json([
                 'status' => false,
@@ -71,34 +62,21 @@ class CommentController extends Controller
         }
     }
 
-    public function deleteComment($productId, $commentId, Request $request)
+    public function deleteComment(Product $product, Comment $comment, Request $request)
     {
         try {
-            $product = Product::findOrFail($productId);
-            $comment = Comment::findOrFail($commentId);
             $user = $request->user();
-            
             if ($comment->product_id !== $product->id) {
                 return response()->json([
                     'status' => false,
                     'message' => 'Comment does not belong to this product'
                 ], 400);
             }
-            
-            if ($user->role !== 'admin' && $comment->user_id !== $user->id) {
-                return response()->json([
-                    'status' => false,
-                    'message' => 'Unauthorized to delete this comment'
-                ], 403);
-            }
-            
             $comment->delete();
-            
             return response()->json([
                 'status' => true,
                 'message' => 'Comment deleted successfully'
             ]);
-            
         } catch (\Exception $e) {
             return response()->json([
                 'status' => false,
@@ -107,5 +85,4 @@ class CommentController extends Controller
             ], 500);
         }
     }
-    
 }

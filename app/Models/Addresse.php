@@ -28,7 +28,6 @@ class Addresse extends Model
         'updated_at' => 'datetime'
     ];
 
-    // Relationships
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);

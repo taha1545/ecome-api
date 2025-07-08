@@ -17,7 +17,6 @@ use Illuminate\Support\Str;
 
 class UserController extends Controller
 {
-    //admin controlle 
     //boot detecter 
     // email verify 
 
@@ -29,7 +28,7 @@ class UserController extends Controller
             $validator = Validator::make($request->all(), [
                 'name' => 'required|string|max:255',
                 'email' => 'required|string|email|max:255|unique:users',
-                'password' => 'required|string|min:8|regex:/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{10,}$/',
+                'password' => 'required|string|min:8',
                 'profile_image' => 'nullable|image|max:4096',
             ], [
                 'profile_image.max' => 'The profile image must not be larger than 4MB.',
@@ -285,7 +284,7 @@ class UserController extends Controller
             } else {
                 return response()->json([
                     'status' => false,
-                    'message' => 'user not found'
+                    'message' => 'user is not allowed '
                 ], 401);
             }
             // Verify current password
@@ -325,12 +324,12 @@ class UserController extends Controller
         //
         try {
             $user = $request->user();
-
+            //
             if (!$user) {
                 return response()->json([
                     'status' => false,
-                    'message' => 'Unauthenticated'
-                ], 401);
+                    'message' => 'user not found'
+                ], 404);
             }
             //
             $userData = [
@@ -392,20 +391,16 @@ class UserController extends Controller
 
     public function updateMe(Request $request)
     {
-        //
         DB::beginTransaction();
-        //
         try {
-            //
             $user = $request->user();
             //
             $validator = Validator::make($request->all(), [
                 'name' => 'nullable|string|max:255',
                 'email' => 'nullable|email|max:255|unique:users,email,' . $user->id,
-                'profile_image' => 'nullable|image|max:4096',
-            ], [
-                'profile_image.max' => 'The profile image must not be larger than 4MB.',
+                'profile_image' => 'nullable|string',
             ]);
+            //
             if ($validator->fails()) {
                 return response()->json([
                     'status' => false,
@@ -422,6 +417,25 @@ class UserController extends Controller
                 }
                 $updateData['profile_image'] = $request->file('profile_image')
                     ->store('profile_images', 'public');
+            } elseif (!empty($updateData['profile_image']) && preg_match('/^data:image\/(\w+);base64,/', $updateData['profile_image'], $type)) {
+                $image = substr($updateData['profile_image'], strpos($updateData['profile_image'], ',') + 1);
+                $image = base64_decode($image);
+                //
+                if ($image === false) {
+                    throw new \Exception('Base64 decode failed');
+                }
+                //
+                $extension = strtolower($type[1]);
+                $filename = 'profile_images/' . uniqid() . '.' . $extension;
+                //
+                Storage::disk('public')->put($filename, $image);
+                //
+                if ($user->profile_image) {
+                    Storage::disk('public')->delete($user->profile_image);
+                }
+                //
+                $updateData['profile_image'] = $filename;
+                //
             }
             //
             $user->update($updateData);
@@ -495,7 +509,6 @@ class UserController extends Controller
         }
     }
 
-
     public function googleLogin(Request $request)
     {
         try {
@@ -556,7 +569,7 @@ class UserController extends Controller
             //
         } catch (Exception $e) {
             DB::rollBack();
-
+            //
             return response()->json([
                 'status' => false,
                 'message' => 'Google authentication failed',
@@ -564,5 +577,4 @@ class UserController extends Controller
             ], 500);
         }
     }
-    
 }

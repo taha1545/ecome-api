@@ -8,22 +8,22 @@ use Illuminate\Http\Request;
 class ProductFilter extends Filter
 {
 
-  
+
     public function apply(Builder $query): Builder
     {
         $this->query = $query;
 
-       
+
         $this->filterByCategory()
-             ->filterByTag()
-             ->filterBySearch()
-             ->filterByBrand()
-             ->filterByPrice()
-             ->filterByDiscount()
-             ->filterByStock()
-             ->filterByActive()
-             ->filterByDate()
-             ->applySorting();
+            ->filterByTag()
+            ->filterBySearch()
+            ->filterByBrand()
+            ->filterByPrice()
+            ->filterByDiscount()
+            ->filterByStock()
+            ->filterByActive()
+            ->filterByDate()
+            ->applySorting();
 
         return $this->query;
     }
@@ -33,7 +33,7 @@ class ProductFilter extends Filter
     {
         // Single category filter
         if ($this->request->has('category')) {
-            $this->query->whereHas('categories', function($q) {
+            $this->query->whereHas('categories', function ($q) {
                 $q->where('categories.id', $this->request->category);
             });
         }
@@ -44,7 +44,7 @@ class ProductFilter extends Filter
                 ? $this->request->categories
                 : explode(',', $this->request->categories);
 
-            $this->query->whereHas('categories', function($q) use ($categoryIds) {
+            $this->query->whereHas('categories', function ($q) use ($categoryIds) {
                 $q->whereIn('categories.id', $categoryIds);
             });
         }
@@ -56,7 +56,7 @@ class ProductFilter extends Filter
     {
         // Single tag filter
         if ($this->request->has('tag')) {
-            $this->query->whereHas('tags', function($q) {
+            $this->query->whereHas('tags', function ($q) {
                 $q->where('tags.id', $this->request->tag);
             });
         }
@@ -67,7 +67,7 @@ class ProductFilter extends Filter
                 ? $this->request->tags
                 : explode(',', $this->request->tags);
 
-            $this->query->whereHas('tags', function($q) use ($tagIds) {
+            $this->query->whereHas('tags', function ($q) use ($tagIds) {
                 $q->whereIn('tags.id', $tagIds);
             });
         }
@@ -79,10 +79,10 @@ class ProductFilter extends Filter
     {
         if ($this->request->has('search')) {
             $searchTerm = $this->request->search;
-            $this->query->where(function($q) use ($searchTerm) {
+            $this->query->where(function ($q) use ($searchTerm) {
                 $q->where('name', 'like', "%{$searchTerm}%")
-                  ->orWhere('description', 'like', "%{$searchTerm}%")
-                  ->orWhere('brand', 'like', "%{$searchTerm}%");
+                    ->orWhere('description', 'like', "%{$searchTerm}%")
+                    ->orWhere('brand', 'like', "%{$searchTerm}%");
             });
         }
 
@@ -112,7 +112,7 @@ class ProductFilter extends Filter
         return $this;
     }
 
- 
+
     protected function filterByDiscount(): self
     {
         if ($this->request->has('has_discount') && $this->request->boolean('has_discount')) {
@@ -122,11 +122,11 @@ class ProductFilter extends Filter
         return $this;
     }
 
- 
+
     protected function filterByStock(): self
     {
         if ($this->request->has('in_stock') && $this->request->boolean('in_stock')) {
-            $this->query->whereHas('variants', function($q) {
+            $this->query->whereHas('variants', function ($q) {
                 $q->where('quantity', '>', 0);
             });
         }
@@ -146,7 +146,7 @@ class ProductFilter extends Filter
         return $this;
     }
 
- 
+
     protected function filterByDate(): self
     {
         if ($this->request->has('created_after')) {
@@ -163,12 +163,74 @@ class ProductFilter extends Filter
 
     protected function applySorting(): self
     {
-        $sortField = $this->request->get('sort_by', 'created_at');
+        $sortField = $this->request->get('sort_by', 'popularity');
         $sortDirection = $this->request->get('sort_direction', 'desc');
-        $allowedSortFields = ['name', 'price', 'created_at', 'views', 'discount_price'];
+        $allowedSortFields = [
+            'name',
+            'price',
+            'created_at',
+            'views',
+            'discount_price',
+            'popularity',
+            'discount_percentage',
+            'average_rating',
+            'orders_count',
+            'in_stock'
+        ];
 
-        if (in_array($sortField, $allowedSortFields)) {
-            $this->query->orderBy($sortField, $sortDirection === 'asc' ? 'asc' : 'desc');
+        //
+        $sortDirection = in_array(strtolower($sortDirection), ['asc', 'desc'])
+            ? $sortDirection
+            : 'desc';
+
+        switch ($sortField) {
+            case 'popularity':
+                // 
+                $this->query->orderByRaw(
+                    "COALESCE(views / GREATEST(1, CURRENT_DATE - DATE(created_at)), 0) $sortDirection"
+                );
+                break;
+
+            case 'discount_percentage':
+                // 
+                $this->query->orderByRaw(
+                    "CASE 
+                    WHEN price > 0 AND discount_price IS NOT NULL 
+                    THEN ((price - discount_price)::float / price) * 100 
+                    ELSE 0 
+                END $sortDirection"
+                );
+                break;
+
+            case 'average_rating':
+                $this->query->withAvg('reviews as average_rating', 'rating')
+                    ->orderBy('average_rating', $sortDirection);
+                break;
+
+            case 'orders_count':
+                $this->query->withCount('orders as orders_count')
+                    ->orderBy('orders_count', $sortDirection);
+                break;
+
+            case 'in_stock':
+                $this->query->orderByRaw(
+                    "CASE 
+                    WHEN EXISTS (
+                        SELECT 1 
+                        FROM product_variants 
+                        WHERE product_id = products.id 
+                        AND quantity > 0
+                    ) THEN 1 
+                    ELSE 0 
+                END $sortDirection"
+                );
+                break;
+
+            default:
+                if (in_array($sortField, $allowedSortFields)) {
+                    $this->query->orderBy($sortField, $sortDirection);
+                }
+                break;
         }
 
         return $this;

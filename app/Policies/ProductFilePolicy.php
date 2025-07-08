@@ -23,13 +23,13 @@ class ProductFilePolicy
     }
 
    
-    public function create(User $user, Product $product)
+    public function create(User $user)
     {
         return $user->role === 'admin';
     }
 
 
-    public function delete(User $user, ProductFile $file)
+    public function delete(User $user)
     {
         return $user->role === 'admin';
     }

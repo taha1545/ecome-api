@@ -13,10 +13,10 @@ return new class extends Migration
             $table->id();
             $table->string('name', 255)->unique();
             $table->text('description');
-            $table->string('brand', 100);
-            $table->decimal('price', 10, 2);
+            $table->string('brand', 100)->nullable();
+            $table->decimal('price', 10, 2)->nullable()->default(0);
             $table->decimal('discount_price', 10, 2)->nullable();
-            $table->boolean('is_active')->default(true);
+            $table->boolean('is_active')->default(false);
             $table->unsignedInteger('views')->default(0);
             $table->timestamps();
 
@@ -34,6 +34,7 @@ return new class extends Migration
             $table->foreignId('product_id')->constrained()->onDelete('cascade');
             $table->string('size', 50)->nullable();
             $table->string('color', 50)->nullable();
+               $table->text('description')->nullable();
             $table->unsignedInteger('quantity')->default(0);
             $table->decimal('price', 10, 2);
 
@@ -71,7 +72,7 @@ return new class extends Migration
             $table->id();
             $table->foreignId('product_id')->constrained()->onDelete('cascade');
             $table->string('path');
-            $table->enum('type', ['image', 'document', '3d_model'])->default('image');
+            $table->enum('type', ['image', 'document','video', '3d_model'])->default('image')->nullable();
             //
             $table->index(['product_id', 'type']);
             $table->index('type');

@@ -14,5 +14,4 @@ window.Echo = new Echo({
 window.Echo.channel('orders')
     .listen('OrderStatusUpdated', (e) => {
         console.log('Order status updated:', e.order);
-        // Update the UI or notify the user
     });

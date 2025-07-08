@@ -11,10 +11,10 @@ class Contact extends Model
     use HasFactory;
 
     protected $fillable = [
-        'user_id',
         'name',
-        'phone',
         'email',
+        'user_id',
+        'phone',
         'notes',
         'type',
         'is_primary'
@@ -30,15 +30,11 @@ class Contact extends Model
         'personal' => 'Personal',
         'emergency' => 'Emergency',
         'business' => 'Business',
-        'family' => 'Family',
-        'medical' => 'Medical'
     ];
 
-    // Relationships
+
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
     }
-
-   
 }

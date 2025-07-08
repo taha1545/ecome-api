@@ -3,34 +3,37 @@
 namespace App\Http\Requests;
 
 use Illuminate\Foundation\Http\FormRequest;
-use Illuminate\Contracts\Validation\Validator;
-use Illuminate\Http\Exceptions\HttpResponseException;
 
 class UpdateProductRequest extends FormRequest
 {
-    public function authorize(): bool
-    {
-        return true;
-    }
-
-    public function rules(): array
+    public function authorize() { return true; }
+    public function rules()
     {
         return [
-            'name' => 'sometimes|string|max:255',
             'description' => 'sometimes|string',
             'brand' => 'sometimes|string|max:100',
             'price' => 'sometimes|numeric|min:0',
-            'discount_price' => 'nullable|numeric|min:0|lt:price',
+            'discount_price' => 'sometimes|numeric|min:0',
             'is_active' => 'sometimes|boolean',
+
+            // Categories
+            'categories' => 'sometimes|array',
+            'categories.*' => 'sometimes|integer|exists:categories,id',
+
+            // Tags
+            'tags' => 'sometimes|array',
+            'tags.*' => 'sometimes|integer|exists:tags,id',
         ];
     }
 
-    protected function failedValidation(Validator $validator)
+    public function messages()
     {
-        throw new HttpResponseException(response()->json([
-            'status' => false,
-            'message' => 'Validation error',
-            'errors' => $validator->errors()
-        ], 422));
+        return [
+            'name.unique' => 'This product name already exists.',
+            'price.numeric' => 'The price must be a number.',
+            'discount_price.numeric' => 'The discount price must be a number.',
+            'categories.*.exists' => 'One or more selected categories do not exist.',
+            'tags.*.exists' => 'One or more selected tags do not exist.',
+        ];
     }
-}
+} 

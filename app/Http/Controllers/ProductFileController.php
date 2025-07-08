@@ -4,31 +4,22 @@ namespace App\Http\Controllers;
 
 use App\Models\Product;
 use App\Http\Requests\ProductFileRequest;
+use App\Http\Requests\StoreFileRequest;
 use App\Http\Requests\DeleteProductFileRequest;
 use App\Services\FileService;
 use App\Repositories\ProductFileRepository;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Auth;
+use App\Http\Resources\FileResource;
 
 class ProductFileController extends Controller
 {
 
-    public function getFiles($productId)
+    public function getFiles(Product $product)
     {
         try {
-            //
-            $product = Product::findOrFail($productId);
-            //
-            if (!$product->is_active && (!Auth::check() || Auth::user()->role !== 'admin')) {
-                return response()->json([
-                    'status' => false,
-                    'message' => 'Product not found'
-                ], 404);
-            }
-            //
-            $files = $product->files;
-            //
+            $files = $product->files()->get();
             return response()->json([
                 'status' => true,
                 'message' => 'Files retrieved successfully',
@@ -43,28 +34,20 @@ class ProductFileController extends Controller
         }
     }
 
-
-    public function addFile($productId, ProductFileRequest $request, FileService $fileService)
+    public function addFile(Product $product, StoreFileRequest $request, FileService $fileService)
     {
         try {
             DB::beginTransaction();
-            //
-            $product = Product::findOrFail($productId);
-            // 
             $validatedData = $request->validated();
-            // 
             $path = $fileService->storeProductFile(
                 $validatedData['file'],
-                $validatedData['type']
+                $validatedData['type'] ?? null
             );
-            // 
             $productFile = $product->files()->create([
                 'path' => $path,
-                'type' => $validatedData['type'],
+                'type' => $validatedData['type'] ?? null,
             ]);
-            //
             DB::commit();
-            //
             return response()->json([
                 'status' => true,
                 'message' => 'File added successfully',
@@ -72,16 +55,12 @@ class ProductFileController extends Controller
             ], 201);
         } catch (\Exception $e) {
             DB::rollBack();
-
-            // Handle file not found
             if ($e instanceof \Illuminate\Database\Eloquent\ModelNotFoundException) {
                 return response()->json([
                     'status' => false,
                     'message' => 'Product not found'
                 ], 404);
             }
-
-            // Handle validation errors
             if ($e instanceof \Illuminate\Validation\ValidationException) {
                 return response()->json([
                     'status' => false,
@@ -89,7 +68,6 @@ class ProductFileController extends Controller
                     'errors' => $e->errors()
                 ], 422);
             }
-
             return response()->json([
                 'status' => false,
                 'message' => 'Failed to add file',
@@ -98,36 +76,30 @@ class ProductFileController extends Controller
         }
     }
 
-    public function deleteFile($productId, $fileId, DeleteProductFileRequest $request, ProductFileRepository $repository)
+    public function deleteFile(Product $product, $fileId, Request $request, ProductFileRepository $repository)
     {
         DB::beginTransaction();
         try {
-            //
-            $repository->deleteFile($productId, $fileId);
+            $repository->deleteFile($product->id, $fileId);
             DB::commit();
-            //
             return response()->json([
                 'status' => true,
                 'message' => 'File deleted successfully'
             ]);
-            //
         } catch (\Exception $e) {
             DB::rollBack();
-            // 
             if ($e instanceof \Illuminate\Database\Eloquent\ModelNotFoundException) {
                 return response()->json([
                     'status' => false,
                     'message' => 'File or product not found'
                 ], 404);
             }
-            // 
             if ($e instanceof \Illuminate\Auth\Access\AuthorizationException) {
                 return response()->json([
                     'status' => false,
                     'message' => 'Unauthorized to delete this file'
                 ], 403);
             }
-            //
             return response()->json([
                 'status' => false,
                 'message' => 'Failed to delete file',

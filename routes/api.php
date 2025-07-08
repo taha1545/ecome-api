@@ -1,6 +1,16 @@
 <?php
 
-use App\Http\Controllers\{UserController, ProductController, OrderController, PaymentController, CouponController, AddressController, OrderItemController, ContactController, StockController};
+use App\Http\Controllers\{
+    UserController,
+    ProductController,
+    OrderController,
+    PaymentController,
+    CouponController,
+    AddressController,
+    OrderItemController,
+    ContactController,
+    StockController
+};
 use App\Http\Controllers\CommentController;
 use App\Http\Controllers\ProductVariantController;
 use App\Http\Controllers\CategoryTagController;
@@ -10,7 +20,7 @@ use App\Http\Controllers\SavedProductController;
 use App\Http\Controllers\AdminDashboardController;
 use Illuminate\Support\Facades\Route;
 
-// Public
+// products
 Route::prefix('products')->group(function () {
     Route::get('/', [ProductController::class, 'index']);
     Route::get('/best-selling', [ProductController::class, 'bestSelling']);
@@ -18,114 +28,196 @@ Route::prefix('products')->group(function () {
     Route::get('/suggest/{id}', [ProductController::class, 'suggestProducts']);
     Route::get('/categories', [CategoryTagController::class, 'getCategories']);
     Route::get('/tags', [CategoryTagController::class, 'getTags']);
+    Route::get('/saved', [SavedProductController::class, 'getSavedProducts'])->middleware(['auth.api']);
     Route::get('/category/{categoryId}', [CategoryTagController::class, 'getProductsByCategory']);
     Route::get('/tag/{tagId}', [CategoryTagController::class, 'getProductsByTag']);
-    Route::get('/{id}', [ProductController::class, 'show']);
+    Route::get('/{product}', [ProductController::class, 'show']);
     Route::get('/{productId}/comments', [CommentController::class, 'getComments']);
     Route::get('/{productId}/reviews', [ReviewController::class, 'getReviews']);
     Route::get('/{productId}/files', [ProductFileController::class, 'getFiles']);
     Route::get('/{productId}/variants', [ProductVariantController::class, 'getVariants']);
 });
 
-// Stock Management Routes
-Route::prefix('stock')->group(function () {
-    Route::get('/highest', [StockController::class, 'highestStock']);
-    Route::get('/lowest', [StockController::class, 'lowestStock']);
-    Route::get('/out-of-stock', [StockController::class, 'outOfStock']);
-});
-
-// Protected
-Route::middleware('auth.api:sanctum')->group(function () {
+// Protected Routes
+Route::middleware(['auth.api'])->group(function () {
 
     // Product routes
     Route::prefix('products')->group(function () {
         // CRUD
-        Route::post('/', [ProductController::class, 'store']);
-        Route::put('/{id}', [ProductController::class, 'update']);
-        Route::delete('/{id}', [ProductController::class, 'destroy']);
+        Route::post('/', [ProductController::class, 'store'])
+            ->middleware('can:create,App\Models\Product');
+        Route::put('/{product}', [ProductController::class, 'update'])
+            ->middleware('can:update,product');
+        Route::delete('/{product}', [ProductController::class, 'destroy'])
+            ->middleware('can:delete,product');
 
         // Comments
-        Route::post('/{productId}/comments', [CommentController::class, 'addComment']);
-        Route::delete('/{productId}/comments/{commentId}', [CommentController::class, 'deleteComment']);
+        Route::post('/{product}/comments', [CommentController::class, 'addComment'])
+            ->middleware('can:create,App\Models\Comment,product');
+
+        Route::delete('/{product}/comments/{comment}', [CommentController::class, 'deleteComment'])
+            ->middleware('can:delete,comment');
 
         // Reviews
-        Route::get('/{productId}/reviews', [ReviewController::class, 'getReviews']);
-        Route::post('/{productId}/reviews', [ReviewController::class, 'reviewProduct']);
+        Route::post('/{product}/reviews', [ReviewController::class, 'reviewProduct'])
+            ->middleware('can:reviewProduct,App\Models\Review,product');
 
         // Files
-        Route::post('/{productId}/files', [ProductFileController::class, 'addFile']);
-        Route::delete('/{productId}/files/{fileId}', [ProductFileController::class, 'deleteFile']);
+        Route::post('/{product}/files', [ProductFileController::class, 'addFile'])
+            ->middleware('can:create,App\Models\ProductFile');
+        Route::delete('/{product}/files/{file}', [ProductFileController::class, 'deleteFile'])
+            ->middleware('can:delete,file');
 
         // Variants
-        Route::post('/{productId}/variants', [ProductVariantController::class, 'addVariant']);
-        Route::put('/{productId}/variants/{variantId}', [ProductVariantController::class, 'updateVariant']);
-        Route::delete('/{productId}/variants/{variantId}', [ProductVariantController::class, 'deleteVariant']);
-        Route::patch('/{productId}/variants/{variantId}/stock', [ProductVariantController::class, 'updateStock']);
+        Route::post('/{product}/variants', [ProductVariantController::class, 'addVariant'])
+            ->middleware('can:create,App\Models\ProductVariant');
+
+        Route::put('/{product}/variants/{variant}', [ProductVariantController::class, 'updateVariant'])
+            ->middleware('can:update,variant');
+        Route::delete('/{product}/variants/{variant}', [ProductVariantController::class, 'deleteVariant'])
+            ->middleware('can:delete,variant');
+        Route::patch('/{product}/variants/{variant}/stock', [ProductVariantController::class, 'updateStock'])
+            ->middleware('can:updateStock,variant');
 
         // Tags and Categories
-        Route::post('/tags', [CategoryTagController::class, 'createTag']);
-        Route::delete('/tags/{tagId}', [CategoryTagController::class, 'deleteTag']);
-        Route::post('/categories', [CategoryTagController::class, 'createCategory']);
-        Route::delete('/categories/{categoryId}', [CategoryTagController::class, 'deleteCategory']);
-        Route::post('/{productId}/tags', [CategoryTagController::class, 'addTag']);
-        Route::post('/{productId}/categories', [CategoryTagController::class, 'addCategory']);
+        Route::post('/tags', [CategoryTagController::class, 'createTag'])
+            ->middleware('can:createTag,App\Models\Tag');
+        Route::delete('/tags/{tag}', [CategoryTagController::class, 'deleteTag'])
+            ->middleware('can:deleteTag,tag');
+        Route::post('/categories', [CategoryTagController::class, 'createCategory'])
+            ->middleware('can:createCategory,App\Models\Categorie');
+
+        Route::delete('/categories/{category}', [CategoryTagController::class, 'deleteCategory'])
+            ->middleware('can:deleteCategory,category');
+
+        Route::post('/{product}/tags', [CategoryTagController::class, 'addTag'])
+            ->middleware('can:addTag,App\Models\Tag');
+
+        Route::post('/{productId}/categories', [CategoryTagController::class, 'addCategory'])
+            ->middleware('can:addCategory,App\Models\Categorie');
 
         // Saved products
-        Route::get('/saved', [SavedProductController::class, 'getSavedProducts']);
-        Route::post('/{productId}/save', [SavedProductController::class, 'toggleSaveProduct']);
-        Route::get('/{productId}/is-saved', [SavedProductController::class, 'isProductSaved']);
+        Route::post('/{product}/save', [SavedProductController::class, 'toggleSaveProduct'])
+            ->middleware('can:toggleSave,App\Models\SavedProduct,product');
+
+        Route::get('/{productId}/is-saved', [SavedProductController::class, 'isProductSaved'])
+            ->middleware('can:checkSaved,App\Models\Product');
     });
 
-
     // Payment routes
-    Route::get('/payments', [PaymentController::class, 'index']);
-    Route::post('/payments', [PaymentController::class, 'store']);
-    Route::get('/payments/{id}', [PaymentController::class, 'show']);
-    Route::get('/payments/{id}/status', [PaymentController::class, 'getPaymentStatus']);
-    Route::patch('/payments/{id}/status', [PaymentController::class, 'updateStatus']);
-    Route::post('/payments/{id}/refund', [PaymentController::class, 'refund']);
-    Route::post('/payments/webhook', [PaymentController::class, 'handleWebhook']);
+    Route::prefix('payments')->group(function () {
+        Route::get('/', [PaymentController::class, 'index'])
+            ->middleware('can:viewAny,App\Models\Payment');
+        Route::post('/', [PaymentController::class, 'store'])
+            ->middleware('can:create,App\Models\Payment');
+        Route::get('/{payment}', [PaymentController::class, 'show'])
+            ->middleware('can:view,payment');
+        Route::get('/{payment}/status', [PaymentController::class, 'getPaymentStatus'])
+            ->middleware('can:view,payment');
+        Route::patch('/{payment}/status', [PaymentController::class, 'updateStatus'])
+            ->middleware('can:updateStatus,payment');
+        Route::put('/{payment}', [PaymentController::class, 'update'])
+            ->middleware('can:update,payment');
+        Route::delete('/{payment}', [PaymentController::class, 'destroy'])
+            ->middleware('can:delete,payment');
+    });
 
     // Order routes
-    Route::get('/orders', [OrderController::class, 'index']);
-    Route::post('/orders', [OrderController::class, 'store']);
-    Route::get('/orders/{id}', [OrderController::class, 'show']);
-    Route::put('/orders/{id}', [OrderController::class, 'update']);
-    Route::post('/orders/{id}/cancel', [OrderController::class, 'cancel']);
-    Route::patch('/orders/{id}/status', [OrderController::class, 'updateStatus']);
+    Route::prefix('orders')->group(function () {
+        Route::get('/', [OrderController::class, 'index'])
+            ->middleware('can:viewAny,App\Models\Order');
+        Route::post('/', [OrderController::class, 'store'])
+            ->middleware('can:create,App\Models\Order');
+        Route::post('/{order}/cancel', [OrderController::class, 'cancel'])
+            ->middleware('can:cancel,order');
+        Route::patch('/{order}/status', [OrderController::class, 'updateStatus'])
+            ->middleware('can:updateStatus,order');
+        Route::get('/{order}', [OrderController::class, 'show'])
+            ->middleware('can:view,order');
+        Route::put('/{order}', [OrderController::class, 'update'])
+            ->middleware('can:update,order');
+        Route::delete('/{order}', [OrderController::class, 'destroy'])
+            ->middleware('can:delete,order');
+    });
 
     // Order Item routes
-    Route::get('/orders/{orderId}/items', [OrderItemController::class, 'index']);
-    Route::get('/order-items/{id}', [OrderItemController::class, 'show']);
+    Route::prefix('order-items')->group(function () {
+        Route::get('/orders/{orderId}/items', [OrderItemController::class, 'index'])
+            ->middleware('can:viewAny,App\Models\OrderItem');
+        Route::get('/{orderitem}', [OrderItemController::class, 'show'])
+            ->middleware('can:view,orderitem');
+    });
 
     // Coupon routes
-    Route::get('/coupons', [CouponController::class, 'index']);
-    Route::get('/coupons/{id}', [CouponController::class, 'show']);
-    Route::post('/coupons', [CouponController::class, 'store']);
-    Route::put('/coupons/{id}', [CouponController::class, 'update']);
-    Route::delete('/coupons/{id}', [CouponController::class, 'destroy']);
-    Route::post('/coupons/validate', [CouponController::class, 'validateCoupon']);
-    Route::post('/orders/{id}/use-coupon', [CouponController::class, 'addCouponToOrder']);
+    Route::prefix('coupons')->group(function () {
+        Route::get('/', [CouponController::class, 'index'])
+            ->middleware('can:viewAny,App\Models\Cupon');
+        Route::get('/{coupon}', [CouponController::class, 'show'])
+            ->middleware('can:view,coupon');
+        Route::post('/', [CouponController::class, 'store'])
+            ->middleware('can:create,App\Models\Cupon');
+        Route::put('/{coupon}', [CouponController::class, 'update'])
+            ->middleware('can:update,coupon');
+        Route::delete('/{coupon}', [CouponController::class, 'destroy'])
+            ->middleware('can:delete,coupon');
+        Route::post('/validate', [CouponController::class, 'validateCoupon'])
+            ->middleware('can:apply,App\Models\Cupon');
+        Route::post('/orders/{order}/use-coupon', [CouponController::class, 'addCouponToOrder'])
+            ->middleware('can:apply,App\Models\Cupon');
+    });
 
     // Address routes
-    Route::get('/addresses', [AddressController::class, 'getUserAddresses']);
-    Route::get('/addresses/{id}', [AddressController::class, 'show']);
-    Route::post('/addresses', [AddressController::class, 'store']);
-    Route::put('/addresses/{id}', [AddressController::class, 'update']);
-    Route::delete('/addresses/{id}', [AddressController::class, 'destroy']);
+    Route::prefix('addresses')->group(function () {
+
+        Route::get('/', [AddressController::class, 'getUserAddresses']);
+
+        Route::get('/{address}', [AddressController::class, 'show'])
+            ->middleware('can:view,address');
+
+        Route::post('/', [AddressController::class, 'store'])
+            ->middleware('can:create,App\Models\Addresse');
+
+        Route::put('/{address}', [AddressController::class, 'update'])
+            ->middleware('can:update,address');
+
+        Route::delete('/', [AddressController::class, 'destroy']);
+    });
 
     // Contact routes
-    Route::get('/contacts', [ContactController::class, 'index']);
-    Route::post('/contacts', [ContactController::class, 'store']);
-    Route::get('/contacts/{id}', [ContactController::class, 'show']);
-    Route::put('/contacts/{id}', [ContactController::class, 'update']);
-    Route::delete('/contacts/{id}', [ContactController::class, 'destroy']);
+    Route::prefix('contacts')->group(function () {
+        Route::get('/', [ContactController::class, 'index'])
+            ->middleware('can:viewAny,App\Models\Contact');
+        Route::post('/', [ContactController::class, 'store'])
+            ->middleware('can:create,App\Models\Contact');
+        Route::get('/{contact}', [ContactController::class, 'show'])
+            ->middleware('can:view,contact');
+        Route::put('/{contact}', [ContactController::class, 'update'])
+            ->middleware('can:update,contact');
+        Route::delete('/{contact}', [ContactController::class, 'destroy'])
+            ->middleware('can:delete,contact');
+        Route::patch('/{contact}/primary', [ContactController::class, 'setPrimary'])
+            ->middleware('can:setPrimary,contact');
+    });
 });
 
 // Admin Dashboard Routes
-Route::prefix('admin')->middleware(['auth:sanctum', 'admin'])->group(function () {
-    Route::get('/summary', [AdminDashboardController::class, 'summary']);
-    Route::get('/sales-analytics', [AdminDashboardController::class, 'salesAnalytics']);
-    Route::get('/order-analytics', [AdminDashboardController::class, 'orderAnalytics']);
-    Route::get('/order-notifications', [AdminDashboardController::class, 'getOrderNotifications']);
+Route::prefix('admin')->middleware(['auth.api'])->group(function () {
+    Route::get('/summary', [AdminDashboardController::class, 'summary'])
+        ->middleware('can:viewAny,App\Models\User');
+    Route::get('/sales-analytics', [AdminDashboardController::class, 'salesAnalytics'])
+        ->middleware('can:viewAny,App\Models\User');
+    Route::get('/order-analytics', [AdminDashboardController::class, 'orderAnalytics'])
+        ->middleware('can:viewAny,App\Models\User');
+    Route::get('/order-notifications', [AdminDashboardController::class, 'getOrderNotifications'])
+        ->middleware('can:viewAny,App\Models\User');
+});
+
+// Stock management routes
+Route::prefix('stock')->middleware(['auth.api'])->group(function () {
+    Route::get('/highest', [StockController::class, 'highestStock'])
+        ->middleware('can:viewAny,App\Models\User');
+    Route::get('/lowest', [StockController::class, 'lowestStock'])
+        ->middleware('can:viewAny,App\Models\User');
+    Route::get('/out-of-stock', [StockController::class, 'outOfStock'])
+        ->middleware('can:viewAny,App\Models\User');
 });

@@ -17,13 +17,13 @@ class NewOrderPlaced implements ShouldBroadcast
 
     public $order;
 
- 
+
     public function __construct(Order $order)
     {
         $this->order = $order;
     }
 
-    
+
     public function broadcastOn(): array
     {
         return [
@@ -31,13 +31,13 @@ class NewOrderPlaced implements ShouldBroadcast
         ];
     }
 
-    
+
     public function broadcastWith(): array
     {
         return [
             'order' => [
                 'id' => $this->order->id,
-                'total_amount' => $this->order->total_amount,
+                'total' => $this->order->total,
                 'status' => $this->order->status,
                 'created_at' => $this->order->created_at,
                 'user' => [
@@ -45,15 +45,7 @@ class NewOrderPlaced implements ShouldBroadcast
                     'name' => $this->order->user->name,
                     'email' => $this->order->user->email,
                 ],
-                'items' => $this->order->items->map(function ($item) {
-                    return [
-                        'product_id' => $item->product_id,
-                        'product_name' => $item->product->name,
-                        'quantity' => $item->quantity,
-                        'unit_price' => $item->unit_price,
-                    ];
-                }),
             ],
         ];
     }
-} 
+}

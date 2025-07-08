@@ -23,7 +23,7 @@ class OrderItemResource extends JsonResource
                     'brand' => $this->product->brand,
                     'price' => (float) $this->product->price,
                     'discount_price' => (float) $this->product->discount_price,
-                    'image' => $this->product->files->first() ? url('storage/' . $this->product->files->first()->path) : null,
+                    'image' => $this->product->files->first() ?  $this->product->files->first()->path : null,
                 ];
             }),
             'variant' => $this->whenLoaded('variant', function () {
@@ -32,6 +32,8 @@ class OrderItemResource extends JsonResource
                     'size' => $this->variant->size,
                     'color' => $this->variant->color,
                     'price' => (float) $this->variant->price,
+                    'description' => $this->variant->description,
+                    'sku' => $this->variant->sku,
                 ] : null;
             }),
             'created_at' => $this->created_at->format('Y-m-d H:i:s'),

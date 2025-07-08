@@ -17,6 +17,7 @@ class VariantResource extends JsonResource
             'quantity' => $this->quantity,
             'price' => $this->price,
             'in_stock' => $this->quantity > 0,
+            'description' => $this->description,
         ];
     }
 }

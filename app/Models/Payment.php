@@ -15,28 +15,27 @@ class Payment extends Model
         'succeeded' => 'Succeeded',
         'failed' => 'Failed',
         'refunded' => 'Refunded',
-        'requires_action' => 'Requires Action'
     ];
 
     protected $fillable = [
         'order_id',
         'user_id',
-        'method',
+        'desc',
+        'order_number',
+        'transaction_id',
         'amount',
-        'currency',
+        'recu_path',
         'status',
-        'gateway_id',
         'gateway_response',
-        'error_code',
         'error_message',
-        'processed_at'
+        'processed_at',
     ];
 
     protected $casts = [
         'amount' => 'decimal:2',
         'processed_at' => 'datetime',
         'created_at' => 'datetime',
-        'updated_at' => 'datetime'
+        'updated_at' => 'datetime',
     ];
 
     // Relationships
@@ -49,5 +48,4 @@ class Payment extends Model
     {
         return $this->belongsTo(User::class);
     }
-
 }

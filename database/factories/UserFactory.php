@@ -15,7 +15,7 @@ class UserFactory extends Factory
         return [
             'name' => fake()->name(),
             'email' => fake()->unique()->safeEmail(),
-            'role' => fake()->randomElement(['admin', 'client', 'membre']),
+            'role' => 'client',
             'password' => static::$password ??= Hash::make('password'),
             'profile_image' => fake()->optional(70)->imageUrl(200, 200, 'people'),
             'email_verified_at' => now(),
@@ -26,21 +26,21 @@ class UserFactory extends Factory
 
     public function unverified(): static
     {
-        return $this->state(fn (array $attributes) => [
+        return $this->state(fn(array $attributes) => [
             'email_verified_at' => null,
         ]);
     }
 
     public function role(string $role): static
     {
-        return $this->state(fn (array $attributes) => [
+        return $this->state(fn(array $attributes) => [
             'role' => $role,
         ]);
     }
 
     public function withProfileImage(): static
     {
-        return $this->state(fn (array $attributes) => [
+        return $this->state(fn(array $attributes) => [
             'profile_image' => fake()->imageUrl(200, 200, 'people'),
         ]);
     }

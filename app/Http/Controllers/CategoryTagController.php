@@ -19,13 +19,12 @@ class CategoryTagController extends Controller
     {
         try {
             $categories = Categorie::all();
-            
+
             return response()->json([
                 'status' => true,
                 'message' => 'Categories retrieved successfully',
                 'data' => CategoryResource::collection($categories)
             ]);
-            
         } catch (\Exception $e) {
             return response()->json([
                 'status' => false,
@@ -39,13 +38,12 @@ class CategoryTagController extends Controller
     {
         try {
             $tags = Tag::all();
-            
+
             return response()->json([
                 'status' => true,
                 'message' => 'Tags retrieved successfully',
                 'data' => TagResource::collection($tags)
             ]);
-            
         } catch (\Exception $e) {
             return response()->json([
                 'status' => false,
@@ -55,12 +53,10 @@ class CategoryTagController extends Controller
         }
     }
 
-    public function getProductsByCategory($categoryId, Request $request)
+    public function getProductsByCategory(Categorie $category, Request $request)
     {
         try {
-            $category = Categorie::findOrFail($categoryId);
             $perPage = $request->get('per_page', 20);
-            
             $products = $category->products()
                 ->where('is_active', true)
                 ->with([
@@ -73,14 +69,12 @@ class CategoryTagController extends Controller
                 ->withAvg('reviews', 'rating')
                 ->withCount('reviews')
                 ->paginate($perPage);
-            
             return response()->json([
                 'status' => true,
                 'message' => 'Products retrieved successfully',
                 'category' => $category->only(['id', 'name', 'image']),
                 'data' => new ProductCollection($products)
             ]);
-            
         } catch (\Exception $e) {
             return response()->json([
                 'status' => false,
@@ -90,12 +84,10 @@ class CategoryTagController extends Controller
         }
     }
 
-    public function getProductsByTag($tagId, Request $request)
+    public function getProductsByTag(Tag $tag, Request $request)
     {
         try {
-            $tag = Tag::findOrFail($tagId);
             $perPage = $request->get('per_page', 20);
-            
             $products = $tag->products()
                 ->where('is_active', true)
                 ->with([
@@ -108,14 +100,12 @@ class CategoryTagController extends Controller
                 ->withAvg('reviews', 'rating')
                 ->withCount('reviews')
                 ->paginate($perPage);
-            
             return response()->json([
                 'status' => true,
                 'message' => 'Products retrieved successfully',
                 'tag' => $tag->only(['id', 'name', 'icon']),
                 'data' => new ProductCollection($products)
             ]);
-            
         } catch (\Exception $e) {
             return response()->json([
                 'status' => false,
@@ -132,7 +122,7 @@ class CategoryTagController extends Controller
                 'name' => 'required|string|max:50|unique:tags,name',
                 'icon' => 'nullable|string|max:50',
             ]);
-            
+
             if ($validator->fails()) {
                 return response()->json([
                     'status' => false,
@@ -140,12 +130,12 @@ class CategoryTagController extends Controller
                     'errors' => $validator->errors()
                 ], 422);
             }
-            
+
             $tag = new Tag();
             $tag->name = $request->name;
             $tag->icon = $request->icon;
             $tag->save();
-            
+
             return response()->json([
                 'status' => true,
                 'message' => 'Tag created successfully',
@@ -167,7 +157,7 @@ class CategoryTagController extends Controller
                 'name' => 'required|string|max:100|unique:categories,name',
                 'image' => 'nullable|image|max:2048',
             ]);
-            
+
             if ($validator->fails()) {
                 return response()->json([
                     'status' => false,
@@ -175,30 +165,29 @@ class CategoryTagController extends Controller
                     'errors' => $validator->errors()
                 ], 422);
             }
-            
+
             DB::beginTransaction();
-            
+
             $category = new Categorie();
             $category->name = $request->name;
-            
+
             if ($request->hasFile('image')) {
                 $path = $request->file('image')->store('categories', 'public');
                 $category->image = $path;
             }
-            
+
             $category->save();
-            
+
             DB::commit();
-            
+
             return response()->json([
                 'status' => true,
                 'message' => 'Category created successfully',
                 'data' => new CategoryResource($category)
             ], 201);
-            
         } catch (\Exception $e) {
             DB::rollBack();
-            
+
             return response()->json([
                 'status' => false,
                 'message' => 'Failed to create category',
@@ -207,18 +196,9 @@ class CategoryTagController extends Controller
         }
     }
 
-    public function deleteTag($tagId, Request $request)
+    public function deleteTag(Tag $tag, Request $request)
     {
         try {
-            if ($request->user()->role !== 'admin') {
-                return response()->json([
-                    'status' => false,
-                    'message' => 'Unauthorized to delete tags'
-                ], 403);
-            }
-            
-            $tag = Tag::findOrFail($tagId);
-            
             $productsCount = $tag->products()->count();
             if ($productsCount > 0) {
                 return response()->json([
@@ -226,14 +206,11 @@ class CategoryTagController extends Controller
                     'message' => "Cannot delete tag. It is used by {$productsCount} products."
                 ], 400);
             }
-            
             $tag->delete();
-            
             return response()->json([
                 'status' => true,
                 'message' => 'Tag deleted successfully'
             ]);
-            
         } catch (\Exception $e) {
             return response()->json([
                 'status' => false,
@@ -243,18 +220,9 @@ class CategoryTagController extends Controller
         }
     }
 
-    public function deleteCategory($categoryId, Request $request)
+    public function deleteCategory(Categorie $category, Request $request)
     {
         try {
-            if ($request->user()->role !== 'admin') {
-                return response()->json([
-                    'status' => false,
-                    'message' => 'Unauthorized to delete categories'
-                ], 403);
-            }
-            
-            $category = Categorie::findOrFail($categoryId);
-            
             $productsCount = $category->products()->count();
             if ($productsCount > 0) {
                 return response()->json([
@@ -262,24 +230,18 @@ class CategoryTagController extends Controller
                     'message' => "Cannot delete category. It is used by {$productsCount} products."
                 ], 400);
             }
-            
             DB::beginTransaction();
-            
             if ($category->image) {
                 Storage::disk('public')->delete($category->image);
             }
-            
             $category->delete();
-            
             DB::commit();
-            
             return response()->json([
                 'status' => true,
                 'message' => 'Category deleted successfully'
             ]);
         } catch (\Exception $e) {
             DB::rollBack();
-            
             return response()->json([
                 'status' => false,
                 'message' => 'Failed to delete category',
@@ -288,13 +250,12 @@ class CategoryTagController extends Controller
         }
     }
 
-    public function addTag($productId, Request $request)
+    public function addTag(Product $product, Request $request)
     {
         try {
             $validator = Validator::make($request->all(), [
                 'tag_id' => 'required|exists:tags,id',
             ]);
-            
             if ($validator->fails()) {
                 return response()->json([
                     'status' => false,
@@ -302,27 +263,18 @@ class CategoryTagController extends Controller
                     'errors' => $validator->errors()
                 ], 422);
             }
-            
-            $product = Product::findOrFail($productId);
             $tagId = $request->tag_id;
-            
             if ($product->tags()->where('tag_id', $tagId)->exists()) {
                 return response()->json([
                     'status' => false,
                     'message' => 'Tag is already attached to this product'
                 ], 400);
             }
-            
             $product->tags()->attach($tagId);
-            
-            $tag = Tag::find($tagId);
-            
             return response()->json([
                 'status' => true,
                 'message' => 'Tag added successfully',
-                'data' => $tag
             ], 201);
-            
         } catch (\Exception $e) {
             return response()->json([
                 'status' => false,
@@ -332,13 +284,12 @@ class CategoryTagController extends Controller
         }
     }
 
-    public function addCategory($productId, Request $request)
+    public function addCategory(Product $product, Request $request)
     {
         try {
             $validator = Validator::make($request->all(), [
                 'category_id' => 'required|exists:categories,id',
             ]);
-            
             if ($validator->fails()) {
                 return response()->json([
                     'status' => false,
@@ -346,27 +297,18 @@ class CategoryTagController extends Controller
                     'errors' => $validator->errors()
                 ], 422);
             }
-            
-            $product = Product::findOrFail($productId);
             $categoryId = $request->category_id;
-            
             if ($product->categories()->where('categorie_id', $categoryId)->exists()) {
                 return response()->json([
                     'status' => false,
                     'message' => 'Category is already attached to this product'
                 ], 400);
             }
-            
             $product->categories()->attach($categoryId);
-            
-            $category = Categorie::find($categoryId);
-            
             return response()->json([
                 'status' => true,
                 'message' => 'Category added successfully',
-                'data' => new CategoryResource($category)
             ], 201);
-            
         } catch (\Exception $e) {
             return response()->json([
                 'status' => false,
@@ -375,6 +317,4 @@ class CategoryTagController extends Controller
             ], 500);
         }
     }
-
-    
 }

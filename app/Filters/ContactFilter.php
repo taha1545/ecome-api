@@ -12,10 +12,10 @@ class ContactFilter extends Filter
         $this->query = $query;
 
         $this->filterByUser()
-             ->filterByType()
-             ->filterByPrimary()
-             ->filterBySearch()
-             ->applySorting();
+            ->filterByType()
+            ->filterByPrimary()
+            ->filterBySearch()
+            ->applySorting();
 
         return $this->query;
     }
@@ -23,7 +23,7 @@ class ContactFilter extends Filter
     protected function filterByUser(): self
     {
         $user = $this->request->user();
-        
+
         // 
         if ($user && $user->role !== 'admin') {
             $this->query->where('user_id', $user->id);
@@ -63,11 +63,9 @@ class ContactFilter extends Filter
     {
         if ($this->request->has('search')) {
             $search = $this->request->search;
-            $this->query->where(function($query) use ($search) {
-                $query->where('name', 'like', "%{$search}%")
-                      ->orWhere('email', 'like', "%{$search}%")
-                      ->orWhere('phone', 'like', "%{$search}%")
-                      ->orWhere('notes', 'like', "%{$search}%");
+            $this->query->where(function ($query) use ($search) {
+                $query->Where('phone', 'like', "%{$search}%")
+                    ->orWhere('notes', 'like', "%{$search}%");
             });
         }
 
@@ -80,7 +78,11 @@ class ContactFilter extends Filter
         $sortDirection = $this->request->get('sort_direction', 'desc');
 
         $allowedSortFields = [
-            'id', 'name', 'email', 'phone', 'type', 'is_primary', 'created_at'
+            'id',
+            'phone',
+            'type',
+            'is_primary',
+            'created_at'
         ];
 
         if (in_array($sortField, $allowedSortFields)) {

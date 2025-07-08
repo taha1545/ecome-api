@@ -35,4 +35,13 @@ return [
         ],
     ],
 
+
+    'satim' => [
+        'username'   => env('SATIM_USERNAME'),
+        'password'   => env('SATIM_PASSWORD'),
+        'terminal_id' => env('SATIM_TERMINAL_ID'),
+        'test_mode'   => env('SATIM_TEST_MODE', true),
+    ],
+
+
 ];

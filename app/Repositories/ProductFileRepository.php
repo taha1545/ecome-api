@@ -9,42 +9,34 @@ use Illuminate\Database\Eloquent\ModelNotFoundException;
 
 class ProductFileRepository
 {
- 
+
     protected $fileService;
-    
+
 
     public function __construct(FileService $fileService)
     {
         $this->fileService = $fileService;
     }
-    
 
-    public function deleteFile(int $productId, int $fileId): bool
+
+    public function deleteFile(Product $product, ProductFile $file): bool
     {
-        // 
-        $product = Product::findOrFail($productId);
-        
-        // 
-        $file = $product->files()->where('id', $fileId)->firstOrFail();
-        
         //
         $this->fileService->deleteFile($file->path);
-        
+
         // 
         return $file->delete();
     }
-    
-   
-    public function getProductFiles(int $productId)
+
+
+    public function getProductFiles(product $product)
     {
-        $product = Product::findOrFail($productId);
         return $product->files;
     }
-    
- 
-    public function getProductFilesByType(int $productId, string $type)
+
+
+    public function getProductFilesByType(product $product, string $type)
     {
-        $product = Product::findOrFail($productId);
         return $product->files()->where('type', $type)->get();
     }
 }

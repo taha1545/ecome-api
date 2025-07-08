@@ -24,17 +24,19 @@ class OrderPolicy
         return $user->id === $order->user_id;
     }
 
+
     public function create(User $user)
     {
+
         return true;
     }
 
-    public function update(User $user, Order $order)
+    public function update(User $user)
     {
         return $user->role === 'admin';
     }
 
-    public function delete(User $user, Order $order)
+    public function delete(User $user)
     {
         return $user->role === 'admin';
     }
@@ -49,7 +51,7 @@ class OrderPolicy
         return $user->id === $order->user_id && in_array($order->status, $cancellableStatuses);
     }
 
-    public function updateStatus(User $user, Order $order)
+    public function updateStatus(User $user)
     {
         return $user->role === 'admin';
     }

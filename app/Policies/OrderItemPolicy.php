@@ -29,12 +29,12 @@ class OrderItemPolicy
         return $user->role === 'admin';
     }
 
-    public function update(User $user, OrderItem $orderItem)
+    public function update(User $user)
     {
         return $user->role === 'admin';
     }
 
-    public function delete(User $user, OrderItem $orderItem)
+    public function delete(User $user)
     {
         return $user->role === 'admin';
     }

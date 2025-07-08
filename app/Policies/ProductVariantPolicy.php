@@ -22,24 +22,24 @@ class ProductVariantPolicy
     }
 
   
-    public function create(User $user, Product $product)
+    public function create(User $user)
     {
         return $user->role === 'admin';
     }
 
-    public function update(User $user, ProductVariant $variant)
+    public function update(User $user)
     {
         return $user->role === 'admin';
     }
 
 
-    public function delete(User $user, ProductVariant $variant)
+    public function delete(User $user)
     {
         return $user->role === 'admin';
     }
 
    
-    public function updateStock(User $user, ProductVariant $variant)
+    public function updateStock(User $user)
     {
         return $user->role === 'admin';
     }

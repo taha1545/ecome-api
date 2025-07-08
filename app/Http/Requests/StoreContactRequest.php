@@ -2,46 +2,28 @@
 
 namespace App\Http\Requests;
 
-use App\Models\Contact;
 use Illuminate\Foundation\Http\FormRequest;
-use Illuminate\Support\Facades\Auth;
 
 class StoreContactRequest extends FormRequest
 {
-  
-    public function authorize()
-    {
-        return true;
-    }
 
-  
     public function rules()
     {
         return [
-            'user_id' => 'sometimes|exists:users,id',
-            'name' => 'required|string|max:100',
             'phone' => 'required|string|max:20',
-            'email' => 'nullable|email|max:150',
-            'notes' => 'nullable|string|max:1000',
-            'type' => 'nullable|string|in:' . implode(',', array_keys(Contact::TYPES)),
+            'notes' => 'required|string|max:1000',
+            'type' => 'nullable|string|in:personal,emergency,business',
             'is_primary' => 'sometimes|boolean',
+            'user_id' => 'nullable|exists:users,id',
         ];
     }
 
-  
     public function messages()
     {
         return [
-            'name.required' => 'The contact name is required',
-            'phone.required' => 'The contact phone number is required',
-            'email.email' => 'Please provide a valid email address',
-            'type.in' => 'The selected contact type is invalid',
+            'phone.required' => 'Phone number is required.',
+            'notes.required' => 'Notes are required.',
+            'type.in' => 'Invalid contact type :personal,emergency,business ',
         ];
-    }
-
-    
-    public function userAuthorized()
-    {
-        return Auth::user();
     }
 }

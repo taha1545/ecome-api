@@ -9,18 +9,13 @@ use Illuminate\Support\Facades\Validator;
 
 class ReviewController extends Controller
 {
-    public function getReviews($productId)
+    public function getReviews(Product $product)
     {
         try {
-            // Find the product
-            $product = Product::findOrFail($productId);
-
-            // Get reviews with pagination
             $reviews = $product->reviews()
                 ->with('user:id,name,profile_image')
                 ->orderBy('created_at', 'desc')
                 ->paginate(10);
-
             return response()->json([
                 'status' => true,
                 'message' => 'Reviews retrieved successfully',
@@ -35,15 +30,13 @@ class ReviewController extends Controller
         }
     }
 
-    public function reviewProduct($productId, Request $request)
+    public function reviewProduct(Product $product, Request $request)
     {
         try {
-            // Validate request
             $validator = Validator::make($request->all(), [
-                'rating' => 'required|integer|min:1|max:5',
+                'rating' => 'required|integer|min:0|max:5',
                 'message' => 'nullable|string|max:1000',
             ]);
-
             if ($validator->fails()) {
                 return response()->json([
                     'status' => false,
@@ -51,30 +44,19 @@ class ReviewController extends Controller
                     'errors' => $validator->errors()
                 ], 422);
             }
-
-            // Find the product
-            $product = Product::findOrFail($productId);
             $user = $request->user();
-
-            // Check if user has already reviewed this product
             $existingReview = Review::where('product_id', $product->id)
                 ->where('user_id', $user->id)
                 ->first();
-
             $isNewReview = !$existingReview;
             $review = $existingReview ?: new Review([
                 'user_id' => $user->id,
                 'product_id' => $product->id
             ]);
-
-            // Update or set review data
             $review->rating = $request->rating;
             $review->message = $request->message;
             $review->save();
-
-            // Load the user relationship
             $review->load('user:id,name,profile_image');
-
             return response()->json([
                 'status' => true,
                 'message' => $isNewReview ? 'Review added successfully' : 'Review updated successfully',

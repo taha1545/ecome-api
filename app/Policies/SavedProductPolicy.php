@@ -28,7 +28,7 @@ class SavedProductPolicy
     }
 
     
-    public function checkSaved(User $user, Product $product)
+    public function checkSaved(User $user)
     {
         return true;
     }

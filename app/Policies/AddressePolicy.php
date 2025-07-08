@@ -10,11 +10,7 @@ class AddressePolicy
 {
     use HandlesAuthorization;
 
-    public function viewAny(User $user)
-    {
-        return true;
-    }
-
+   
     public function view(User $user, Addresse $addresse)
     {
         if ($user->role === 'admin') {
@@ -38,12 +34,8 @@ class AddressePolicy
         return $user->id === $addresse->user_id;
     }
 
-    public function delete(User $user, Addresse $addresse)
+    public function delete(User $user)
     {
-        if ($user->role === 'admin') {
             return true;
-        }
-
-        return $user->id === $addresse->user_id;
     }
 }

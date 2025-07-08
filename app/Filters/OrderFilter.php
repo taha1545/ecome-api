@@ -21,15 +21,14 @@ class OrderFilter
         $this->query = $query;
 
         $this->filterByUser()
-             ->filterByStatus()
-             ->filterByDateRange()
-             ->filterByPriceRange()
-             ->filterByPaymentStatus()
-             ->filterByPaymentMethod()
-             ->filterByHasItems()
-             ->filterByItemCount()
-             ->filterBySearch()
-             ->applySorting();
+            ->filterByStatus()
+            ->filterByDateRange()
+            ->filterByPriceRange()
+            ->filterByPaymentStatus()
+            ->filterByHasItems()
+            ->filterByItemCount()
+            ->filterBySearch()
+            ->applySorting();
 
         return $this->query;
     }
@@ -104,33 +103,19 @@ class OrderFilter
         return $this;
     }
 
-    protected function filterByPaymentMethod(): self
-    {
-        if ($this->request->has('payment_method')) {
-            $method = $this->request->payment_method;
-
-            if (is_array($method)) {
-                $this->query->whereIn('payment_method', $method);
-            } else {
-                $this->query->where('payment_method', $method);
-            }
-        }
-
-        return $this;
-    }
 
     protected function filterByHasItems(): self
     {
         if ($this->request->has('has_product')) {
             $productId = $this->request->has_product;
-            $this->query->whereHas('items', function($query) use ($productId) {
+            $this->query->whereHas('items', function ($query) use ($productId) {
                 $query->where('product_id', $productId);
             });
         }
 
         if ($this->request->has('has_variant')) {
             $variantId = $this->request->has_variant;
-            $this->query->whereHas('items', function($query) use ($variantId) {
+            $this->query->whereHas('items', function ($query) use ($variantId) {
                 $query->where('variant_id', $variantId);
             });
         }
@@ -157,13 +142,13 @@ class OrderFilter
     {
         if ($this->request->has('search')) {
             $search = $this->request->search;
-            $this->query->where(function($query) use ($search) {
+            $this->query->where(function ($query) use ($search) {
                 $query->where('id', 'like', "%{$search}%")
-                      ->orWhere('notes', 'like', "%{$search}%")
-                      ->orWhereHas('user', function($q) use ($search) {
-                          $q->where('name', 'like', "%{$search}%")
+                    ->orWhere('notes', 'like', "%{$search}%")
+                    ->orWhereHas('user', function ($q) use ($search) {
+                        $q->where('name', 'like', "%{$search}%")
                             ->orWhere('email', 'like', "%{$search}%");
-                      });
+                    });
             });
         }
 
@@ -176,8 +161,14 @@ class OrderFilter
         $sortDirection = $this->request->get('sort_direction', 'desc');
 
         $allowedSortFields = [
-            'id', 'created_at', 'updated_at', 'status', 'payment_status',
-            'total', 'subtotal', 'payment_method'
+            'id',
+            'created_at',
+            'updated_at',
+            'status',
+            'payment_status',
+            'total',
+            'subtotal',
+            'payment_method'
         ];
 
         if (in_array($sortField, $allowedSortFields)) {
@@ -186,10 +177,9 @@ class OrderFilter
 
         if ($sortField === 'items_count') {
             $this->query->withCount('items')
-                       ->orderBy('items_count', $sortDirection === 'asc' ? 'asc' : 'desc');
+                ->orderBy('items_count', $sortDirection === 'asc' ? 'asc' : 'desc');
         }
 
         return $this;
     }
-    
 }

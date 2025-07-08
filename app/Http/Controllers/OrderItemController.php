@@ -14,19 +14,18 @@ class OrderItemController extends Controller
     {
         try {
             $user = $request->user();
-            $order = Order::findOrFail($orderId);
-            // 
-            if ($user->role !== 'admin' && $order->user_id !== $user->id) {
+            $order = Order::find($orderId);
+            if (!$order) {
                 return response()->json([
                     'status' => false,
-                    'message' => 'Unauthorized to view items for this order'
-                ], 403);
+                    'message' => 'order not found',
+                ], 404);
             }
-
+            // 
             $items = OrderItem::where('order_id', $orderId)
                 ->with(['product.files', 'variant'])
                 ->get();
-
+            //
             return response()->json([
                 'status' => true,
                 'message' => 'Order items retrieved successfully',
@@ -41,21 +40,10 @@ class OrderItemController extends Controller
         }
     }
 
-    public function show(Request $request, $id)
+    public function show(Request $request, OrderItem $orderitem)
     {
         try {
-            $user = $request->user();
-            $item = OrderItem::with(['product.files', 'variant', 'order'])
-                ->findOrFail($id);
-
-            //
-            if ($user->role !== 'admin' && $item->order->user_id !== $user->id) {
-                return response()->json([
-                    'status' => false,
-                    'message' => 'Unauthorized to view this order item'
-                ], 403);
-            }
-
+            $item = $orderitem->load(['product.files', 'variant', 'order']);
             return response()->json([
                 'status' => true,
                 'message' => 'Order item retrieved successfully',

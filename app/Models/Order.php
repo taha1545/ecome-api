@@ -14,7 +14,7 @@ class Order extends Model
     public const STATUSES = [
         'pending',
         'processing',
-        'confirmed',
+        'confirmed', 
         'shipped',
         'delivered',
         'canceled',

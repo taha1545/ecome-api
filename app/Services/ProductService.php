@@ -42,6 +42,7 @@ class ProductService
                     $product->variants()->create([
                         'size' => $variantData['size'] ?? null,
                         'color' => $variantData['color'] ?? null,
+                        'description' => $variantData['description'] ?? null,
                         'quantity' => $variantData['quantity'],
                         'price' => $variantData['price'],
                     ]);
@@ -54,9 +55,9 @@ class ProductService
             }
 
             DB::commit();
-
+            //
             return $product->fresh(['categories', 'tags', 'variants', 'files']);
-
+            //
         } catch (\Exception $e) {
             DB::rollBack();
             throw $e;
@@ -102,25 +103,33 @@ class ProductService
         }
     }
 
-
     public function updateProduct(Product $product, array $data): Product
     {
         DB::beginTransaction();
 
         try {
-            // Update only basic product information
-            $product->update(array_filter([
-                'name' => $data['name'] ?? null,
-                'description' => $data['description'] ?? null,
-                'brand' => $data['brand'] ?? null,
-                'price' => $data['price'] ?? null,
-                'discount_price' => $data['discount_price'] ?? null,
-                'is_active' => isset($data['is_active']) ? $data['is_active'] : null,
-            ]));
+            // 
+            $product->update([
+                'description' => $data['description'] ?? $product->description,
+                'brand' => $data['brand'] ?? $product->brand,
+                'price' => $data['price'] ?? $product->price,
+                'discount_price' => $data['discount_price'] ?? $product->discount_price,
+                'is_active' => $data['is_active'] ?? $product->is_active,
+            ]);
+
+            if (isset($data['categories']) && is_array($data['categories'])) {
+                $product->categories()->sync($data['categories']);
+            }
+
+            if (isset($data['tags']) && is_array($data['tags'])) {
+                $product->tags()->sync($data['tags']);
+            }
 
             DB::commit();
 
-            return $product->fresh();
+            // 
+            return $product->load('categories', 'tags')->fresh();
+            //
         } catch (\Exception $e) {
             DB::rollBack();
             throw $e;
@@ -140,7 +149,7 @@ class ProductService
                 }
             }
 
-            // Delete related records
+            //
             $product->variants()->delete();
             $product->files()->delete();
             $product->reviews()->delete();
@@ -157,6 +166,7 @@ class ProductService
             DB::commit();
 
             return true;
+            //
         } catch (\Exception $e) {
             DB::rollBack();
             throw $e;

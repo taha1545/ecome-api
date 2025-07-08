@@ -12,13 +12,13 @@ class PaymentFilter extends Filter
         $this->query = $query;
 
         $this->filterByUser()
-             ->filterByOrder()
-             ->filterByStatus()
-             ->filterByMethod()
-             ->filterByDateRange()
-             ->filterByAmountRange()
-             ->filterByTransactionId()
-             ->applySorting();
+            ->filterByOrder()
+            ->filterByStatus()
+            ->filterByDateRange()
+            ->filterByAmountRange()
+            ->filterByTransactionId()
+            ->filterByOrderNumber()
+            ->applySorting();
 
         return $this->query;
     }
@@ -61,20 +61,7 @@ class PaymentFilter extends Filter
         return $this;
     }
 
-    protected function filterByMethod(): self
-    {
-        if ($this->request->has('method')) {
-            $method = $this->request->method;
 
-            if (is_array($method)) {
-                $this->query->whereIn('method', $method);
-            } else {
-                $this->query->where('method', $method);
-            }
-        }
-
-        return $this;
-    }
 
     protected function filterByDateRange(): self
     {
@@ -113,24 +100,31 @@ class PaymentFilter extends Filter
     protected function filterByTransactionId(): self
     {
         if ($this->request->has('transaction_id')) {
-            $this->query->where('transaction_id', 'like', '%' . $this->request->transaction_id . '%');
+            $this->query->where('transaction_id',   $this->request->transaction_id);
         }
-
-        if ($this->request->has('gateway_id')) {
-            $this->query->where('gateway_id', 'like', '%' . $this->request->gateway_id . '%');
-        }
-
         return $this;
     }
 
+    protected function filterByOrderNumber(): self
+    {
+        if ($this->request->has('order_number')) {
+            $this->query->where('order_number',   $this->request->transaction_id);
+        }
+        return $this;
+    }
     protected function applySorting(): self
     {
         $sortField = $this->request->get('sort_by', 'created_at');
         $sortDirection = $this->request->get('sort_direction', 'desc');
 
         $allowedSortFields = [
-            'id', 'created_at', 'processed_at', 'status', 
-            'amount', 'method', 'order_id'
+            'id',
+            'created_at',
+            'processed_at',
+            'status',
+            'amount',
+            'method',
+            'order_id'
         ];
 
         if (in_array($sortField, $allowedSortFields)) {

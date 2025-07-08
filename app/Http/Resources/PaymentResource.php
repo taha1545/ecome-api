@@ -11,6 +11,7 @@ class PaymentResource extends JsonResource
         return [
             'id' => $this->id,
             'order_id' => $this->order_id,
+
             'user' => [
                 'id' => $this->user->id,
                 'name' => $this->user->name,
@@ -26,18 +27,20 @@ class PaymentResource extends JsonResource
                     'phone' => $this->user->addresse->phone,
                 ] : null,
             ],
+
+            'desc' => $this->desc,
             'amount' => (float) $this->amount,
-            'currency' => $this->currency,
-            'method' => $this->method,
             'status' => $this->status,
+            'order_number' => $this->order_number,
             'transaction_id' => $this->transaction_id,
-            'gateway_id' => $this->gateway_id,
-            'error_code' => $this->error_code,
+            'recu_path' => $this->recu_path,
             'error_message' => $this->error_message,
-            'processed_at' => $this->processed_at ? $this->processed_at->format('Y-m-d H:i:s') : null,
+
+            'processed_at' => optional($this->processed_at)->format('Y-m-d H:i:s'),
             'created_at' => $this->created_at->format('Y-m-d H:i:s'),
             'updated_at' => $this->updated_at->format('Y-m-d H:i:s'),
-            'order' => $this->whenLoaded('order', function() {
+
+            'order' => $this->whenLoaded('order', function () {
                 return [
                     'id' => $this->order->id,
                     'status' => $this->order->status,
@@ -46,15 +49,20 @@ class PaymentResource extends JsonResource
                     'shipping_cost' => (float) $this->order->shipping_cost,
                     'total' => (float) $this->order->total,
                     'created_at' => $this->order->created_at->format('Y-m-d H:i:s'),
-                    'coupon' => $this->order->coupon && $this->order->coupon->id ? [
-                        'id' => $this->order->coupon->id,
-                        'code' => $this->order->coupon->code,
-                        'value' => (float) $this->order->coupon->value,
-                    ] : null,
+                    'coupon' => optional($this->order->coupon, function ($coupon) {
+                        return [
+                            'id' => $coupon->id,
+                            'code' => $coupon->code,
+                            'value' => (float) $coupon->value,
+                        ];
+                    }),
                 ];
             }),
-            'gateway_response' => $this->when($request->user() && $request->user()->role === 'admin',
-                json_decode($this->gateway_response, true))
+
+            'gateway_response' => $this->when(
+                $request->user() && $request->user()->role === 'admin',
+                fn() => json_decode($this->gateway_response, true)
+            ),
         ];
     }
 }
