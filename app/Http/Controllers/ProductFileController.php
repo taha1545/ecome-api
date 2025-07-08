@@ -12,6 +12,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Auth;
 use App\Http\Resources\FileResource;
+use App\Models\ProductFile;
 
 class ProductFileController extends Controller
 {
@@ -76,11 +77,11 @@ class ProductFileController extends Controller
         }
     }
 
-    public function deleteFile(Product $product, $fileId, Request $request, ProductFileRepository $repository)
+    public function deleteFile(Product $product, ProductFile $fileId, Request $request, ProductFileRepository $repository)
     {
         DB::beginTransaction();
         try {
-            $repository->deleteFile($product->id, $fileId);
+            $repository->deleteFile($product, $fileId);
             DB::commit();
             return response()->json([
                 'status' => true,

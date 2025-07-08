@@ -53,25 +53,15 @@ class PaymentController extends Controller
     {
         try {
             //
-            $user = $request->user();
-            //
-            $payment = Payment::with([
+            $payment->load([
                 'user.addresse',
                 'order.coupon'
-            ])->find($payment->id);
-            if (!$payment) {
-                return response()->json([
-                    'status' => false,
-                    'message' => 'payment not found',
-                ], 404);
-            }
-            //
+            ]);
             return response()->json([
                 'status' => true,
                 'message' => 'Payment retrieved successfully',
                 'data' => new PaymentResource($payment)
             ]);
-            //
         } catch (\Exception $e) {
             return response()->json([
                 'status' => false,
@@ -80,6 +70,7 @@ class PaymentController extends Controller
             ], 500);
         }
     }
+
 
     public function store(Request $request, PaymentService $paymentService)
     {
@@ -120,16 +111,19 @@ class PaymentController extends Controller
         }
     }
 
-    public function updateStatus(Request $request, $id)
+    public function updateStatus(Request $request, Payment $payment)
     {
         DB::beginTransaction();
         try {
-            $payment = Payment::with(['user', 'order'])->findOrFail($id);
-
+            $payment->load([
+                'user.addresse',
+                'order.coupon'
+            ]);
+            //
             $validator = Validator::make($request->all(), [
                 'status' => 'required|string|in:pending,processing,completed,failed,refunded',
             ]);
-
+            //
             if ($validator->fails()) {
                 return response()->json([
                     'status' => false,

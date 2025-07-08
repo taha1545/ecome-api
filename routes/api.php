@@ -32,10 +32,10 @@ Route::prefix('products')->group(function () {
     Route::get('/category/{categoryId}', [CategoryTagController::class, 'getProductsByCategory']);
     Route::get('/tag/{tagId}', [CategoryTagController::class, 'getProductsByTag']);
     Route::get('/{product}', [ProductController::class, 'show']);
-    Route::get('/{productId}/comments', [CommentController::class, 'getComments']);
-    Route::get('/{productId}/reviews', [ReviewController::class, 'getReviews']);
-    Route::get('/{productId}/files', [ProductFileController::class, 'getFiles']);
-    Route::get('/{productId}/variants', [ProductVariantController::class, 'getVariants']);
+    Route::get('/{product}/comments', [CommentController::class, 'getComments']);
+    Route::get('/{product}/reviews', [ReviewController::class, 'getReviews']);
+    Route::get('/{product}/files', [ProductFileController::class, 'getFiles']);
+    Route::get('/{product}/variants', [ProductVariantController::class, 'getVariants']);
 });
 
 // Protected Routes
@@ -93,7 +93,7 @@ Route::middleware(['auth.api'])->group(function () {
         Route::post('/{product}/tags', [CategoryTagController::class, 'addTag'])
             ->middleware('can:addTag,App\Models\Tag');
 
-        Route::post('/{productId}/categories', [CategoryTagController::class, 'addCategory'])
+        Route::post('/{product}/categories', [CategoryTagController::class, 'addCategory'])
             ->middleware('can:addCategory,App\Models\Categorie');
 
         // Saved products
@@ -112,14 +112,8 @@ Route::middleware(['auth.api'])->group(function () {
             ->middleware('can:create,App\Models\Payment');
         Route::get('/{payment}', [PaymentController::class, 'show'])
             ->middleware('can:view,payment');
-        Route::get('/{payment}/status', [PaymentController::class, 'getPaymentStatus'])
-            ->middleware('can:view,payment');
         Route::patch('/{payment}/status', [PaymentController::class, 'updateStatus'])
             ->middleware('can:updateStatus,payment');
-        Route::put('/{payment}', [PaymentController::class, 'update'])
-            ->middleware('can:update,payment');
-        Route::delete('/{payment}', [PaymentController::class, 'destroy'])
-            ->middleware('can:delete,payment');
     });
 
     // Order routes
